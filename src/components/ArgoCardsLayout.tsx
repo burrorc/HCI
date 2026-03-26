@@ -12,6 +12,7 @@ import {
   Check,
 } from "lucide-react";
 import servicesData from "../../services.json";
+import environmentsData from "../../environments.json";
 
 type AppStatus = "Healthy" | "Progressing" | "Degraded" | "Missing" | "Unknown";
 
@@ -205,21 +206,24 @@ const DeleteIcon = () => (
   </svg>
 );
 
-const apps: AppItem[] = new Array(9).fill(0).map((_, i) => ({
-  name: `openfaas-functions-${i + 1}`,
-  status: i % 2 === 0 ? "Healthy" : "Progressing",
-  synced: true,
-  project: "mp-cert",
-  labels: "environment=cert, group=cde, region=central",
-  repository:
-    "https://github.com/globalpayments-internal/mxp-mp-deployment-manifest.git",
-  targetRevision: "cert",
-  path: "deployment/cde/agregation/cert/",
-  destination: "Unknown",
-  namespace: "merchant-portal",
-  createdAt: "01/21/2025 09:59:55 (a year ago)",
-  lastSync: "03/24/2026 11:32:52 (4 hours ago)",
-}));
+const apps: AppItem[] = environmentsData.map((env, i) => {
+  const name = `${env.environment}-${env.cluster}-${env.group}`;
+  return {
+    name,
+    status: i % 2 === 0 ? "Healthy" : "Progressing",
+    synced: true,
+    project: env.environment,
+    labels: `environment=${env.environment}, group=${env.group}, region=${env.cluster}`,
+    repository:
+      "https://github.com/globalpayments-internal/mxp-mp-deployment-manifest.git",
+    targetRevision: env.environment,
+    path: `deployment/${env.group}/${env.environment}/${env.cluster}/`,
+    destination: env.cluster,
+    namespace: "my-boutique-shop",
+    createdAt: "01/21/2025 09:59:55 (a year ago)",
+    lastSync: "03/24/2026 11:32:52 (4 hours ago)",
+  };
+});
 
 function StatusPill({ label, color }: StatusPillProps) {
   return (
@@ -407,10 +411,10 @@ function AppCard({
                 </div>
               </div>
               <div className="truncate whitespace-nowrap"><span className="text-gray-600">Repo:</span> <span className="text-gray-700">{app.repository}</span></div>
-              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Rev:</span> <span className="text-gray-700">{app.targetRevision}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Revision:</span> <span className="text-gray-700">{app.targetRevision}</span></div>
               <div className="truncate whitespace-nowrap"><span className="text-gray-600">Path:</span> <span className="text-gray-700">{app.path}</span></div>
-              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Dest:</span> <span className="text-gray-700">{app.destination}</span></div>
-              <div className="truncate whitespace-nowrap"><span className="text-gray-600">NS:</span> <span className="text-gray-700">{app.namespace}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Destination:</span> <span className="text-gray-700">{app.destination}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Namespace:</span> <span className="text-gray-700">{app.namespace}</span></div>
               <div className="truncate whitespace-nowrap"><span className="text-gray-600">Created:</span> <span className="text-gray-700">{app.createdAt}</span></div>
               <div className="truncate whitespace-nowrap"><span className="text-gray-600">Sync:</span> <span className="text-gray-700">{app.lastSync}</span></div>
             </div>
@@ -678,7 +682,7 @@ export default function ArgoCardsLayout() {
               }}
               className="px-2 py-1 text-sm text-gray-600 hover:text-gray-800 hover:underline font-medium"
             >
-              / Projects
+              / projects
             </button>
             {selectedApp && (
               <>
@@ -738,7 +742,7 @@ export default function ArgoCardsLayout() {
           <div className="flex-1 overflow-hidden">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 h-full grid-rows-2 auto-rows-fr">
               {selectedApp ? (
-                // Show services (alphabetically)
+                // Show services from services.json (alphabetically)
                 [...servicesData].sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                   <ServiceCard 
                     key={service.name} 

@@ -1,0 +1,122 @@
+[
+  {
+    "environment": "dev",
+    "cluster": "east",
+    "group": "applications"
+  },
+  {
+    "environment": "dev",
+    "cluster": "east",
+    "group": "secrets"
+  },
+  {
+    "environment": "dev",
+    "cluster": "east",
+    "group": "configurations"
+  },
+  {
+    "environment": "dev",
+    "cluster": "central",
+    "group": "applications"
+  },
+  {
+    "environment": "dev",
+    "cluster": "central",
+    "group": "secrets"
+  },
+  {
+    "environment": "dev",
+    "cluster": "central",
+    "group": "configurations"
+  },
+  {
+    "environment": "qa",
+    "cluster": "east",
+    "group": "applications"
+  },
+  {
+    "environment": "qa",
+    "cluster": "east",
+    "group": "secrets"
+  },
+  {
+    "environment": "qa",
+    "cluster": "east",
+    "group": "configurations"
+  },
+  {
+    "environment": "qa",
+    "cluster": "central",
+    "group": "applications"
+  },
+  {
+    "environment": "qa",
+    "cluster": "central",
+    "group": "secrets"
+  },
+  {
+    "environment": "qa",
+    "cluster": "central",
+    "group": "configurations"
+  },
+  {
+    "environment": "stg",
+    "cluster": "east",
+    "group": "applications"
+  },
+  {
+    "environment": "stg",
+    "cluster": "east",
+    "group": "secrets"
+  },
+  {
+    "environment": "stg",
+    "cluster": "east",
+    "group": "configurations"
+  },
+  {
+    "environment": "stg",
+    "cluster": "central",
+    "group": "applications"
+  },
+  {
+    "environment": "stg",
+    "cluster": "central",
+    "group": "secrets"
+  },
+  {
+    "environment": "stg",
+    "cluster": "central",
+    "group": "configurations"
+  },
+  {
+    "environment": "prod",
+    "cluster": "east",
+    "group": "applications"
+  },
+  {
+    "environment": "prod",
+    "cluster": "east",
+    "group": "secrets"
+  },
+  {
+    "environment": "prod",
+    "cluster": "east",
+    "group": "configurations"
+  },
+  {
+    "environment": "prod",
+    "cluster": "central",
+    "group": "applications"
+  },
+  {
+    "environment": "prod",
+    "cluster": "central",
+    "group": "secrets"
+  },
+  {
+    "environment": "prod",
+    "cluster": "central",
+    "group": "configurations"
+  }
+]
