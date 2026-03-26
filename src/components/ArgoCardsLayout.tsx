@@ -541,7 +541,7 @@ export default function ArgoCardsLayout() {
     () => Object.fromEntries(apps.map((a) => [a.name, a.name]))
   );
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
-  const [modalApp, setModalApp] = useState<AppItem | null>(null);
+  const [modalApp, setModalApp] = useState<AppItem | ServiceItem | null>(null);
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -591,7 +591,7 @@ export default function ArgoCardsLayout() {
 
   return (
     <>
-      <AppModal app={modalApp} onClose={() => setModalApp(null)} />
+      <AppModal app={modalApp} onClose={() => setModalApp(null)} selectedAppName={selectedApp || undefined} />
       <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-[#1A3B4C] text-gray-200 flex flex-col p-4">

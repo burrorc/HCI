@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfaas-functions-1
+  namespace: merchant-portal
+  labels:
+    environment: cert
+    group: cde
+    region: central
+  annotations:
+    deployment.branch: cert
+    deployment.commitId: abc123def456ghi789jkl012mno345
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: openfaas-functions-1
+  template:
+    metadata:
+      labels:
+        app: openfaas-functions-1
+        environment: cert
+    spec:
+      containers:
+      - name: openfaas-functions
+        image: ghcr.io/globalpayments/openfaas-functions:v1.2.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "cert"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      serviceAccountName: openfaas-functions
+      securityContext:
+        fsGroup: 1000

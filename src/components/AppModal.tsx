@@ -1,21 +1,123 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export interface AppModalProps {
   app: any;
   onClose: () => void;
+  selectedAppName?: string;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ app, onClose }) => {
+const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName }) => {
   const [forceReplace, setForceReplace] = useState(false);
   const [forceSync, setForceSync] = useState(false);
+  const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
+
+  useEffect(() => {
+    setYamlMode(null);
+  }, [app]);
 
   if (!app) return null;
 
+  console.log("Modal app data:", app);
+
   const isSynced = app.liveBranch === app.desiredBranch && app.liveCommit === app.desiredCommit;
 
+  const generateYaml = (branch: string, commitId: string) => {
+    try {
+      console.log("Generating YAML with branch:", branch, "commitId:", commitId);
+      
+      // Parse service name by splitting on hyphens, using selectedAppName if available
+      const nameToUse = selectedAppName || app.name || "service";
+      const nameParts = nameToUse.split("-");
+      const environment = nameParts[0] || "unknown";
+      const group = nameParts[1] || "unknown";
+      const region = nameParts[2] || "unknown";
+
+      const yaml = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${app.name || "service"}
+  namespace: ${app.namespace || "default"}
+  labels:
+    environment: ${environment}
+    group: ${group}
+    region: ${region}
+  annotations:
+    deployment.branch: ${branch || "N/A"}
+    deployment.commitId: ${commitId || "N/A"}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ${app.name || "service"}
+  template:
+    metadata:
+      labels:
+        app: ${app.name || "service"}
+        environment: ${environment}
+    spec:
+      containers:
+      - name: ${app.name || "service"}
+        image: ghcr.io/globalpayments/${app.name || "service"}:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "${environment}"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      serviceAccountName: ${app.name || "service"}
+      securityContext:
+        fsGroup: 1000`;
+      console.log("Generated YAML:", yaml);
+      return yaml;
+    } catch (error) {
+      console.error("Error generating YAML:", error);
+      return "Error generating YAML";
+    }
+  };
+
+  const getHighlightedYaml = () => {
+    if (!yamlMode) return null;
+
+    const liveYaml = generateYaml(app.liveBranch || "", app.liveCommit || "");
+    const desiredYaml = generateYaml(app.desiredBranch || "", app.desiredCommit || "");
+    
+    const yamlToDisplay = yamlMode === "live" ? liveYaml : desiredYaml;
+    const otherYaml = yamlMode === "live" ? desiredYaml : liveYaml;
+    
+    const yamlLines = yamlToDisplay.split("\n");
+    const otherLines = otherYaml.split("\n");
+    
+    return yamlLines.map((line, idx) => ({
+      line,
+      isDiff: line !== (otherLines[idx] || ""),
+    }));
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black bg-opacity-40">
-      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[360px] max-w-[90vw] relative">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 bg-black bg-opacity-40 pointer-events-none">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[calc(100vh-2rem)] relative overflow-y-auto pointer-events-auto">
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
           onClick={onClose}
@@ -65,7 +167,15 @@ const AppModal: React.FC<AppModalProps> = ({ app, onClose }) => {
           <div className="text-sm">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-green-50 rounded p-3 border border-green-200">
-                <div className="text-sm font-bold text-green-700 mb-2 uppercase text-center">Live</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-bold text-green-700 uppercase flex-1 text-center">Live</div>
+                  <button
+                    onClick={() => setYamlMode(yamlMode === "live" ? null : "live")}
+                    className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                  >
+                    YAML
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {(app.liveBranch || app.desiredBranch) && (
                     <div>
@@ -82,7 +192,15 @@ const AppModal: React.FC<AppModalProps> = ({ app, onClose }) => {
                 </div>
               </div>
               <div className="bg-gray-50 rounded p-3 border border-gray-300">
-                <div className="text-sm font-bold text-gray-700 mb-2 uppercase text-center">Desired</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-bold text-gray-700 uppercase flex-1 text-center">Desired</div>
+                  <button
+                    onClick={() => setYamlMode(yamlMode === "desired" ? null : "desired")}
+                    className="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
+                  >
+                    YAML
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {(app.liveBranch || app.desiredBranch) && (
                     <div>
@@ -101,6 +219,20 @@ const AppModal: React.FC<AppModalProps> = ({ app, onClose }) => {
             </div>
           </div>
         </div>
+
+        {yamlMode && (
+          <div className="mb-4 pb-4 border-b">
+            <div className={`${yamlMode === "live" ? "bg-green-50 text-gray-800" : "bg-gray-100 text-gray-800"} p-3 rounded font-mono text-xs overflow-x-auto`} style={{ maxHeight: "300px", overflowY: "auto" }}>
+              <pre className="whitespace-pre-wrap break-words">
+                {getHighlightedYaml()?.map((item, idx) => (
+                  <div key={idx} className={item.isDiff ? "bg-red-200" : ""}>
+                    {item.line}
+                  </div>
+                ))}
+              </pre>
+            </div>
+          </div>
+        )}
 
         <div className="mb-4 flex justify-center gap-4 border-t pt-4">
           <label className="flex items-center gap-2 cursor-pointer">
