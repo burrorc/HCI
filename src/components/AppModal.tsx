@@ -7,9 +7,23 @@ export interface AppModalProps {
 }
 
 const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName }) => {
-  const [forceReplace, setForceReplace] = useState(false);
-  const [forceSync, setForceSync] = useState(false);
   const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [moreOptions, setMoreOptions] = useState({
+    force: false,
+    replace: false,
+    prune: false,
+    dryRun: false,
+    applyOnly: false,
+    skipSchemaValidation: false,
+    autoCreateNamespace: true,
+    pruneLast: false,
+    applyOutOfSyncOnly: false,
+    respectIgnoreDifferences: false,
+    serverSideApply: false,
+    prunePropagationReplace: false,
+    prunePropagationRetry: false,
+  });
 
   useEffect(() => {
     setYamlMode(null);
@@ -117,7 +131,7 @@ spec:
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 bg-black bg-opacity-40 pointer-events-none">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[calc(100vh-2rem)] relative overflow-y-auto pointer-events-auto">
+      <div className="bg-white rounded-lg shadow-lg p-6 w-[500px] max-h-[calc(100vh-2rem)] relative pointer-events-auto flex flex-col">
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
           onClick={onClose}
@@ -220,39 +234,162 @@ spec:
           </div>
         </div>
 
-        {yamlMode && (
-          <div className="mb-4 pb-4 border-b">
-            <div className={`${yamlMode === "live" ? "bg-green-50 text-gray-800" : "bg-gray-100 text-gray-800"} p-3 rounded font-mono text-xs overflow-x-auto`} style={{ maxHeight: "300px", overflowY: "auto" }}>
-              <pre className="whitespace-pre-wrap break-words">
-                {getHighlightedYaml()?.map((item, idx) => (
-                  <div key={idx} className={item.isDiff ? "bg-red-200" : ""}>
-                    {item.line}
-                  </div>
-                ))}
-              </pre>
+        <div className="mb-4 flex justify-center">
+          <button 
+            onClick={() => setShowMoreOptions(!showMoreOptions)}
+            className="px-3 py-1 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+          >
+            {showMoreOptions ? "Hide options" : "More options"}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto min-h-0 mb-4">
+          {yamlMode && (
+            <div className="pb-4 border-b">
+              <div className={`${yamlMode === "live" ? "bg-green-50 text-gray-800" : "bg-gray-100 text-gray-800"} p-3 rounded font-mono text-xs overflow-x-auto`} style={{ maxHeight: "300px", overflowY: "auto" }}>
+                <pre className="whitespace-pre-wrap break-words">
+                  {getHighlightedYaml()?.map((item, idx) => (
+                    <div key={idx} className={item.isDiff ? "bg-red-200" : ""}>
+                      {item.line}
+                    </div>
+                  ))}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {showMoreOptions && (
+            <div className="pb-4 space-y-4">
+            {/* General Options */}
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="text-xs font-semibold text-gray-700 mb-2 uppercase">General Options</div>
+              <div className="grid grid-cols-4 gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.force}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, force: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Force</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.prune}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, prune: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Prune</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.dryRun}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, dryRun: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Dry Run</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.applyOnly}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, applyOnly: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Apply Only</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Sync Options */}
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="text-xs font-semibold text-gray-700 mb-2 uppercase">Sync Options</div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.skipSchemaValidation}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, skipSchemaValidation: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Skip Schema Validation</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.autoCreateNamespace}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, autoCreateNamespace: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Auto-create Namespace</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.pruneLast}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, pruneLast: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Prune Last</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.applyOutOfSyncOnly}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, applyOutOfSyncOnly: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Apply Out of Sync Only</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.respectIgnoreDifferences}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, respectIgnoreDifferences: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Respect Ignore Differences</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.serverSideApply}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, serverSideApply: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Server Side Apply</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Prune Propagation Policy */}
+            <div className="bg-gray-50 p-3 rounded">
+              <div className="text-xs font-semibold text-gray-700 mb-2 uppercase">Prune Propagation Policy</div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.prunePropagationReplace}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, prunePropagationReplace: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Replace</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={moreOptions.prunePropagationRetry}
+                    onChange={(e) => setMoreOptions({ ...moreOptions, prunePropagationRetry: e.target.checked })}
+                  />
+                  <span className="text-xs text-gray-700">Retry</span>
+                </label>
+              </div>
             </div>
           </div>
         )}
-
-        <div className="mb-4 flex justify-center gap-4 border-t pt-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="w-4 h-4"
-              checked={forceReplace}
-              onChange={(e) => setForceReplace(e.target.checked)}
-            />
-            <span className="text-sm text-gray-700">Force</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="w-4 h-4"
-              checked={forceSync}
-              onChange={(e) => setForceSync(e.target.checked)}
-            />
-            <span className="text-sm text-gray-700">Replace</span>
-          </label>
         </div>
 
         <div className="flex justify-center gap-2 pt-4 border-t">
