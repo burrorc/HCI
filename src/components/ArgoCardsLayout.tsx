@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import AppModal from "./AppModal";
 import {
   LayoutGrid,
   Folder,
@@ -60,6 +61,7 @@ interface AppCardProps {
   onDraftTitleChange: (next: string) => void;
   onTitleSave: () => void;
   onTitleRevert: () => void;
+  onCardClick: () => void;
 }
 
 type IconSize = "sm" | "lg";
@@ -452,15 +454,18 @@ function AppCard({
 
 function ServiceCard({
   service,
+  onCardClick,
 }: {
   service: ServiceItem;
+  onCardClick?: () => void;
 }) {
   const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
   const statusColor = isSynced ? "bg-green-500" : "bg-yellow-500";
 
   return (
     <div
-      className={`flex rounded-lg shadow-sm overflow-hidden border-2 bg-white border-gray-200 relative`}
+      className={`flex rounded-lg shadow-sm overflow-hidden border-2 bg-white border-gray-200 relative cursor-pointer`}
+      onClick={onCardClick}
     >
       {/* LEFT status bar */}
       <div className={`w-1.5 ${statusColor}`} />
@@ -536,6 +541,7 @@ export default function ArgoCardsLayout() {
     () => Object.fromEntries(apps.map((a) => [a.name, a.name]))
   );
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
+  const [modalApp, setModalApp] = useState<AppItem | null>(null);
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -584,7 +590,9 @@ export default function ArgoCardsLayout() {
   const totalStatus = sortedApps.length || 1;
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <>
+      <AppModal app={modalApp} onClose={() => setModalApp(null)} />
+      <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-[#1A3B4C] text-gray-200 flex flex-col p-4">
   {/* Logo */}
@@ -732,7 +740,11 @@ export default function ArgoCardsLayout() {
               {selectedApp ? (
                 // Show services (alphabetically)
                 [...servicesData].sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
-                  <ServiceCard key={service.name} service={service} />
+                  <ServiceCard 
+                    key={service.name} 
+                    service={service}
+                    onCardClick={() => setModalApp(service as any)}
+                  />
                 ))
               ) : (
                 // Show apps
@@ -815,6 +827,7 @@ export default function ArgoCardsLayout() {
         </div>
       </div>
     </div>
+    </>
   );
 
 }
