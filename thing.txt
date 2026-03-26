@@ -1,0 +1,88 @@
+
+cert-cde-central-mp-applications
+
+
+Project: mp-cert
+Labels: environment=cert, group=cde, region=central
+Status: Healthy  Synced 
+Repository: https://github.com/globalpayments-internal/mxp-mp-deployment-manifest.git
+Target Revision: cert
+Path: deployment/cde/agregation/cert/
+Destination: Unknown
+Namespace: merchant-portal
+Created At: 01/21/2025 09:59:55 (a year ago)
+Last Sync: 03/24/2026 11:32:52 (4 hours ago)
+  
+cert-cde-central-mp-virtual-service
+
+
+Project:
+mp-cert
+Labels:
+environment=cert, group=cde, region=central
+Status:
+ Healthy  Synced 
+Repository:
+https://github.com/globalpayments-internal/mxlz-mp-cluster-configuration.git
+Target Revision:
+master
+Path:
+manifest/merchant-portal/virtual-service/cde/agregation/cert/us-central
+Destination:
+Unknown
+Namespace:
+merchant-portal
+Created At:
+01/21/2025 09:59:57 (a year ago)
+Last Sync:
+03/19/2026 06:39:35 (5 days ago)
+  
+cert-cde-east-app-configmap
+
+
+Project:
+mp-cert
+Labels:
+environment=cert, group=cde, region=east
+Status:
+ Healthy  OutOfSync 
+Repository:
+https://github.com/globalpayments-internal/mxp-mp-deployment-manifest.git
+Target Revision:
+cert
+Path:
+configuration/cde/cert/app-configmap/overlays/overlays/us-east/
+Destination:
+Unknown
+Namespace:
+merchant-portal
+Created At:
+01/21/2025 09:36:43 (a year ago)
+Last Sync:
+09/24/2025 09:06:51 (6 months ago)
+  
+cert-cde-east-cluster-config-application
+
+
+Project:
+mp-cert
+Labels:
+environment=cert, group=cde, region=east
+Status:
+ Healthy  Synced 
+Repository:
+https://github.com/globalpayments-internal/mxlz-mp-cluster-configuration.git
+Target Revision:
+master
+Path:
+manifest/merchant-portal/cluster-config/cert/cde/east
+Destination:
+Unknown
+Namespace:
+Created At:
+01/16/2025 03:44:40 (a year ago)
+Last Sync:
+05/15/2025 10:12:38 (10 months ago)
+  
+cert-cde-east-external-secret-application
+

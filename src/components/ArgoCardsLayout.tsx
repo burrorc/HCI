@@ -1,0 +1,793 @@
+import React, { useRef, useState } from "react";
+import {
+  LayoutGrid,
+  Folder,
+  GitBranch,
+  Server,
+  Settings,
+  User,
+  BookOpen,
+  Pencil,
+  Check,
+} from "lucide-react";
+import servicesData from "../../services.json";
+
+type AppStatus = "Healthy" | "Progressing" | "Degraded" | "Missing" | "Unknown";
+
+interface ServiceItem {
+  name: string;
+  abbreviation: string;
+  liveBranch: string;
+  liveCommit: string;
+  desiredBranch: string;
+  desiredCommit: string;
+}
+
+interface AppItem {
+  name: string;
+  status: AppStatus;
+  synced: boolean;
+  project: string;
+  labels: string;
+  repository: string;
+  targetRevision: string;
+  path: string;
+  destination: string;
+  namespace: string;
+  createdAt: string;
+  lastSync: string;
+}
+
+interface StatusPillProps {
+  label: string;
+  color: string;
+}
+
+interface NavItemProps {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}
+
+interface AppCardProps {
+  app: AppItem;
+  draftTitle: string;
+  isStarred: boolean;
+  onToggleStar: () => void;
+  isInfoMode: boolean;
+  onToggleInfo: () => void;
+  onDraftTitleChange: (next: string) => void;
+  onTitleSave: () => void;
+  onTitleRevert: () => void;
+}
+
+type IconSize = "sm" | "lg";
+
+const HealthyIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-green-600">
+      <svg viewBox="0 0 24 24" className={`${iconClass} fill-current`}>
+        <path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3 9.24 3 10.91 3.81 12 5.09 13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18L12 21z" />
+      </svg>
+      <span className={textClass}>Healthy</span>
+    </div>
+  );
+};
+
+const ProgressingIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-blue-600">
+      <svg
+        className={`${iconClass} animate-spin`}
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeDasharray="60"
+          strokeDashoffset="20"
+        />
+      </svg>
+      <span className={textClass}>Progressing</span>
+    </div>
+  );
+};
+
+const DegradedIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-red-500">
+      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`}>
+        <circle cx="12" cy="12" r="9" strokeWidth="2" fill="none" />
+        <line x1="8" y1="8" x2="16" y2="16" strokeWidth="2" />
+      </svg>
+      <span className={textClass}>Degraded</span>
+    </div>
+  );
+};
+
+const MissingIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-yellow-600">
+      <svg viewBox="0 0 24 24" className={`${iconClass} fill-current`}>
+        <path d="M12 2L2 22h20L12 2zm0 14h-1v-4h2v4h-1zm0 4h-1v-2h2v2h-1z" />
+      </svg>
+      <span className={textClass}>Missing</span>
+    </div>
+  );
+};
+
+const UnknownIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const dotClass = size === "lg" ? "w-6 h-6" : "w-3 h-3";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-gray-500">
+      <div className={`${dotClass} rounded-full bg-gray-400`} />
+      <span className={textClass}>Unknown</span>
+    </div>
+  );
+};
+
+const OutOfSyncIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-red-500">
+      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`}>
+        <path d="M4 12a8 8 0 0113-5" strokeWidth="2" fill="none" />
+        <polyline points="17,3 17,7 13,7" strokeWidth="2" fill="none" />
+      </svg>
+      <span className={textClass}>OutOfSync</span>
+    </div>
+  );
+};
+
+const SyncedIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
+    <div className="flex items-center gap-2 text-green-600">
+      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`}>
+        <path d="M5 13l4 4L19 7" strokeWidth="2" fill="none" />
+      </svg>
+      <span className={textClass}>Synced</span>
+    </div>
+  );
+};
+
+const SyncIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
+    <path d="M4 12a8 8 0 0113-5" strokeWidth="2" fill="none" />
+    <polyline points="17,3 17,7 13,7" strokeWidth="2" fill="none" />
+    <path d="M20 12a8 8 0 01-13 5" strokeWidth="2" fill="none" />
+    <polyline points="7,21 7,17 11,17" strokeWidth="2" fill="none" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
+    <path
+      d="M20 12a8 8 0 10-2.35 5.65"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="round"
+    />
+    <polyline
+      points="20 8 20 12 16 12"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-current">
+    <polyline points="3 6 5 6 21 6" strokeWidth="2" fill="none" />
+    <path d="M19 6l-1 14H6L5 6" strokeWidth="2" fill="none" />
+    <path d="M10 11v6M14 11v6" strokeWidth="2" />
+    <path d="M9 6V4h6v2" strokeWidth="2" />
+  </svg>
+);
+
+const apps: AppItem[] = new Array(9).fill(0).map((_, i) => ({
+  name: `openfaas-functions-${i + 1}`,
+  status: i % 2 === 0 ? "Healthy" : "Progressing",
+  synced: true,
+  project: "mp-cert",
+  labels: "environment=cert, group=cde, region=central",
+  repository:
+    "https://github.com/globalpayments-internal/mxp-mp-deployment-manifest.git",
+  targetRevision: "cert",
+  path: "deployment/cde/agregation/cert/",
+  destination: "Unknown",
+  namespace: "merchant-portal",
+  createdAt: "01/21/2025 09:59:55 (a year ago)",
+  lastSync: "03/24/2026 11:32:52 (4 hours ago)",
+}));
+
+function StatusPill({ label, color }: StatusPillProps) {
+  return (
+    <div className="flex items-center gap-1 text-xs text-gray-600">
+      <span className={`w-2 h-2 rounded-full ${color}`} />
+      {label}
+    </div>
+  );
+}
+
+function NavItem({ icon, label, active = false, onClick }: NavItemProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-2 py-2 rounded text-left transition-colors ${
+        active ? "bg-white/15 text-white" : "text-gray-200 hover:bg-white/10"
+      }`}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate text-sm">{label}</span>
+    </button>
+  );
+}
+const ArgoLogo = () => (
+  <img
+    src="https://jenkins.reporting.globalpay.com/argocd/assets/images/logo.png"
+    alt="Argo logo"
+    className="w-[74px] h-[74px] object-contain"
+  />
+);
+
+function AppCard({
+  app,
+  draftTitle,
+  isStarred,
+  onToggleStar,
+  isInfoMode,
+  onToggleInfo,
+  onDraftTitleChange,
+  onTitleSave,
+  onTitleRevert,
+  onCardClick,
+}: AppCardProps & { onCardClick: () => void }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const justSavedRef = useRef(false);
+  const statusColor =
+    app.status === "Healthy" ? "bg-green-500" : "bg-blue-400";
+
+  const renderStatusIcon = (size: IconSize = "sm") => {
+    switch (app.status) {
+      case "Healthy":
+        return <HealthyIcon size={size} />;
+      case "Progressing":
+        return <ProgressingIcon size={size} />;
+      case "Degraded":
+        return <DegradedIcon size={size} />;
+      case "Missing":
+        return <MissingIcon size={size} />;
+      default:
+        return <UnknownIcon size={size} />;
+    }
+  };
+
+  const renderSyncIcon = (size: IconSize = "sm") =>
+    app.synced ? <SyncedIcon size={size} /> : <OutOfSyncIcon size={size} />;
+
+  return (
+    <div
+      className={`flex rounded-lg shadow-sm overflow-hidden border-2 cursor-pointer ${
+        isInfoMode ? "bg-sky-50 border-blue-200" : "bg-white border-gray-200"
+      }`}
+      onClick={onCardClick}
+    >
+      {/* LEFT status bar */}
+      <div
+        className={`w-1.5 ${statusColor} ${
+          isInfoMode ? "filter brightness-90" : ""
+        }`}
+      />
+
+      {/* Card content */}
+      <div className="flex-1 p-2 sm:p-3 text-xs sm:text-sm flex flex-col gap-1 sm:gap-2 overflow-hidden relative">
+        {/* Buttons - top right */}
+        <div className="absolute top-2 right-2 flex items-center gap-1 flex-shrink-0 z-10">
+          <button
+            className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full text-xs flex items-center justify-center font-semibold italic font-serif border transition-colors ${
+              isInfoMode
+                ? "bg-white text-blue-600 border-blue-500 hover:bg-blue-50"
+                : "bg-blue-500 text-white border-blue-500 hover:bg-blue-600"
+            }`}
+            aria-label="Toggle info view"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleInfo();
+            }}
+          >
+            i
+          </button>
+          <button
+            type="button"
+            aria-label={isStarred ? "Unstar app" : "Star app"}
+            className={`text-base sm:text-lg transition-colors ${
+              isStarred ? "text-yellow-400" : "text-gray-300"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStar();
+            }}
+          >
+            {isStarred ? "★" : "☆"}
+          </button>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center gap-1 sm:gap-2 pr-16">
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex items-center gap-1 rounded border border-transparent bg-gray-50/80 px-1 sm:px-1.5 py-0.5 shadow-inner focus-within:border-gray-300 focus-within:bg-white group h-6">
+              <input
+                className="text-xs sm:text-sm font-semibold text-gray-800 bg-transparent border-none focus:outline-none flex-1 truncate"
+                value={draftTitle}
+                onChange={(e) => onDraftTitleChange(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    justSavedRef.current = true;
+                    onTitleSave();
+                    inputRef.current?.blur();
+                  }
+                }}
+                onBlur={(e) => {
+                  if (justSavedRef.current) {
+                    justSavedRef.current = false;
+                    return;
+                  }
+                  const target = e.relatedTarget as HTMLElement | null;
+                  if (target && target.dataset?.titleSave === app.name) return;
+                  onTitleRevert();
+                }}
+                ref={inputRef}
+              />
+              <button
+                type="button"
+                aria-label="Save title"
+                className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded text-green-600 hover:bg-green-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-green-300 flex-shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  justSavedRef.current = true;
+                  onTitleSave();
+                  (e.currentTarget as HTMLButtonElement).blur();
+                  inputRef.current?.blur();
+                }}
+                data-title-save={app.name}
+              >
+                <Pencil
+                  size={12}
+                  className="text-gray-400 transition-opacity duration-150 group-focus-within:opacity-0"
+                  aria-hidden="true"
+                />
+                <Check
+                  size={12}
+                  className="absolute text-green-600 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 px-1 truncate">{app.name}</div>
+          </div>
+        </div>
+
+        {/* Meta */}
+        <div className="text-xs flex-1 space-y-0.5 sm:space-y-1 flex flex-col items-center justify-center overflow-y-auto px-2">
+          {isInfoMode ? (
+            <div className="w-full">
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Project:</span> <span className="text-gray-700">{app.project}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Labels:</span> <span className="text-gray-700">{app.labels}</span></div>
+              <div className="flex gap-1 items-center whitespace-nowrap">
+                <span className="text-gray-500">Status:</span>
+                <div className="scale-75 origin-left">
+                  {renderStatusIcon()}
+                </div>
+                <div className="scale-75 origin-left">
+                  {renderSyncIcon()}
+                </div>
+              </div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Repo:</span> <span className="text-gray-700">{app.repository}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Rev:</span> <span className="text-gray-700">{app.targetRevision}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Path:</span> <span className="text-gray-700">{app.path}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Dest:</span> <span className="text-gray-700">{app.destination}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">NS:</span> <span className="text-gray-700">{app.namespace}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Created:</span> <span className="text-gray-700">{app.createdAt}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">Sync:</span> <span className="text-gray-700">{app.lastSync}</span></div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1 sm:gap-2 text-gray-800 items-center text-center">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 shadow-inner">
+                <div className="scale-75 origin-center">
+                  {renderStatusIcon("lg")}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 shadow-sm">
+                <div className="scale-75 origin-center">
+                  {renderSyncIcon("lg")}
+                </div>
+              </div>
+              <div className="text-gray-500 truncate text-xs"><span className="text-gray-600">Created:</span> <span className="text-gray-700">{app.createdAt}</span></div>
+              <div className="text-gray-500 truncate text-xs"><span className="text-gray-600">Synced:</span> <span className="text-gray-700">{app.lastSync}</span></div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-1 mt-auto pt-1 justify-center items-center">
+          <button onClick={(e) => e.stopPropagation()} className="px-2 h-6 text-xs bg-gray-700 text-white rounded-full flex items-center gap-1 whitespace-nowrap">
+            <SyncIcon />
+            <span className="hidden sm:inline">SYNC</span>
+          </button>
+          <button onClick={(e) => e.stopPropagation()} className="px-2 h-6 text-xs bg-gray-700 text-white rounded-full flex items-center gap-1 whitespace-nowrap">
+            <RefreshIcon />
+            <span className="hidden sm:inline">REFRESH</span>
+          </button>
+          <button onClick={(e) => e.stopPropagation()} className="px-2 h-6 text-xs bg-gray-700 text-white rounded-full flex items-center gap-1 whitespace-nowrap">
+            <DeleteIcon />
+            <span className="hidden sm:inline">DELETE</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({
+  service,
+}: {
+  service: ServiceItem;
+}) {
+  const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
+  const statusColor = isSynced ? "bg-green-500" : "bg-yellow-500";
+
+  return (
+    <div
+      className={`flex rounded-lg shadow-sm overflow-hidden border-2 bg-white border-gray-200`}
+    >
+      {/* LEFT status bar */}
+      <div className={`w-1.5 ${statusColor}`} />
+
+      {/* Card content */}
+      <div className="flex-1 p-2 sm:p-3 text-xs sm:text-sm flex flex-col gap-1 sm:gap-2 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate">
+              {service.name}
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              {service.abbreviation}
+            </div>
+          </div>
+        </div>
+
+        {/* Meta */}
+        <div className="text-xs flex-1 space-y-0.5 sm:space-y-1 flex flex-col items-center justify-center overflow-y-auto">
+          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Live:</span> <span className="text-gray-700">{service.liveBranch}</span></div>
+          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Commit:</span> <span className="text-gray-700 font-mono">{service.liveCommit}</span></div>
+          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Desired:</span> <span className="text-gray-700">{service.desiredBranch}</span></div>
+          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Desired Commit:</span> <span className="text-gray-700 font-mono">{service.desiredCommit}</span></div>
+          <div className="truncate whitespace-nowrap w-full pt-1">
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${isSynced ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {isSynced ? 'Synced' : 'Out of Sync'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ArgoCardsLayout() {
+  const [starredByName, setStarredByName] = useState<Record<string, boolean>>({});
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
+  const [infoModeByName, setInfoModeByName] = useState<Record<string, boolean>>({});
+  const [titlesByName, setTitlesByName] = useState<Record<string, string>>(
+    () => Object.fromEntries(apps.map((a) => [a.name, a.name]))
+  );
+  const [draftTitlesByName, setDraftTitlesByName] = useState<Record<string, string>>(
+    () => Object.fromEntries(apps.map((a) => [a.name, a.name]))
+  );
+  const [selectedApp, setSelectedApp] = useState<string | null>(null);
+
+  const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
+  const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
+
+  const sortedApps = [...apps].sort((a, b) => {
+    const aStar = !!starredByName[a.name];
+    const bStar = !!starredByName[b.name];
+
+    if (aStar && !bStar) return -1;
+    if (!aStar && bStar) return 1;
+
+    const titleCompare = getDisplayTitle(a)
+      .toLowerCase()
+      .localeCompare(getDisplayTitle(b).toLowerCase());
+
+    if (titleCompare !== 0) return titleCompare;
+    return a.name.localeCompare(b.name);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedApps.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const pagedApps = sortedApps.slice(startIndex, startIndex + pageSize);
+
+  const statusCounts = sortedApps.reduce(
+    (acc, app) => {
+      acc[app.status] = (acc[app.status] || 0) + 1;
+      return acc;
+    },
+    {
+      Healthy: 0,
+      Progressing: 0,
+      Degraded: 0,
+      Missing: 0,
+      Unknown: 0,
+    } as Record<AppStatus, number>
+  );
+
+  const statusSegments = [
+    { label: "Healthy", count: statusCounts.Healthy, color: "bg-green-500" },
+    { label: "Progressing", count: statusCounts.Progressing, color: "bg-blue-400" },
+    { label: "Degraded", count: statusCounts.Degraded, color: "bg-red-400" },
+    { label: "Missing", count: statusCounts.Missing, color: "bg-yellow-400" },
+    { label: "Unknown", count: statusCounts.Unknown, color: "bg-gray-400" },
+  ];
+  const totalStatus = sortedApps.length || 1;
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-[#1A3B4C] text-gray-200 flex flex-col p-4">
+  {/* Logo */}
+  <div className="flex items-center gap-2 text-white mb-6 px-1">
+  <ArgoLogo />
+  <span className="font-semibold text-2xl">argo</span>
+</div>
+
+  {/* Nav Items */}
+  <div className="flex flex-col gap-3 text-sm">
+    <NavItem icon={<LayoutGrid size={18} />} label="Applications" active />
+        <NavItem icon={<Folder size={18} />} label="Projects" />
+        <NavItem icon={<GitBranch size={18} />} label="Repositories" />
+        <NavItem icon={<Server size={18} />} label="Clusters" />
+        <NavItem icon={<Settings size={18} />} label="Settings" />
+        <NavItem icon={<User size={18} />} label="User Info" />
+        <NavItem icon={<BookOpen size={18} />} label="Documentation" />
+  </div>
+
+  {/* Filters */}
+  <div className="mt-6">
+    <input
+      className="w-full px-3 py-2 rounded bg-[#132A36] text-sm placeholder-gray-400 outline-none"
+      placeholder="Filter name"
+    />
+  </div>
+</div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Controls */}
+        <div className="bg-white border-b p-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <button className="px-2 py-0.5 text-[10px] bg-gray-100 rounded">
+              + NEW APP
+            </button>
+            <button className="px-2 py-0.5 text-[10px] bg-gray-100 rounded">
+              SYNC APPS
+            </button>
+            <button className="px-2 py-0.5 text-[10px] bg-gray-100 rounded">
+              REFRESH APPS
+            </button>
+
+            <div className="relative ml-4">
+              <input
+                className="px-3 py-1 border rounded-full text-xs w-64"
+                placeholder="Search applications..."
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setShowSearchDropdown(false)}
+              />
+              {showSearchDropdown && (
+                <div className="absolute mt-1 w-64 bg-white border rounded shadow text-xs max-h-64 overflow-auto z-50">
+                  {sortedApps.map((app) => {
+                      const displayTitle = titlesByName[app.name] ?? app.name;
+                    return (
+                    <div
+                      key={app.name}
+                      className="px-3 py-1 hover:bg-gray-100 cursor-pointer flex items-start gap-2"
+                      onMouseDown={() => {
+                        setSelectedApp(app.name);
+                        setShowSearchDropdown(false);
+                      }}
+                    >
+                      <span className={starredByName[app.name] ? "text-yellow-400" : "text-gray-300"}>
+                        {starredByName[app.name] ? "★" : "☆"}
+                      </span>
+                      <div className="flex flex-col leading-tight">
+                        <span className="font-medium text-gray-800">{displayTitle}</span>
+                        <span className="text-[11px] text-gray-500">{app.name}</span>
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-0">
+            <button
+              onClick={() => {
+                setPage(1);
+                setSelectedApp(null);
+              }}
+              className="px-2 py-1 text-sm text-gray-600 hover:text-gray-800 hover:underline font-medium"
+            >
+              / Projects
+            </button>
+            {selectedApp && (
+              <>
+                <span className="text-gray-400">
+                  /
+                </span>
+                <span className="text-sm text-gray-600 font-medium">
+                  {selectedApp}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        {!selectedApp && (
+          <div className="px-4 py-2">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
+              {statusSegments
+                .filter((seg) => seg.count > 0)
+                .map((seg) => (
+                  <div
+                    key={seg.label}
+                    className={`${seg.color} h-full`}
+                    style={{ width: `${(seg.count / totalStatus) * 100}%` }}
+                    aria-label={`${seg.label}: ${seg.count}`}
+                  />
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Cards Grid */}
+        <div className="flex-1 overflow-hidden p-2 sm:p-3 flex flex-col gap-1 sm:gap-2">
+          {!selectedApp && (
+            <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600">
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              <span className="text-xs whitespace-nowrap">
+                {currentPage}/{totalPages}
+              </span>
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 h-full grid-rows-2 auto-rows-fr">
+              {selectedApp ? (
+                // Show services
+                servicesData.map((service) => (
+                  <ServiceCard key={service.name} service={service} />
+                ))
+              ) : (
+                // Show apps
+                pagedApps.map((app) => {
+                  const displayTitle = getDisplayTitle(app);
+                  const draftTitle = getDraftTitle(app);
+                  return (
+                    <AppCard
+                      key={app.name}
+                      app={app}
+                      draftTitle={draftTitle}
+                      isStarred={!!starredByName[app.name]}
+                      onToggleStar={() =>
+                        setStarredByName((prev) => ({
+                          ...prev,
+                          [app.name]: !prev[app.name],
+                        }))
+                      }
+                      isInfoMode={!!infoModeByName[app.name]}
+                      onToggleInfo={() =>
+                        setInfoModeByName((prev) => ({
+                          ...prev,
+                          [app.name]: !prev[app.name],
+                        }))
+                      }
+                      onDraftTitleChange={(next) =>
+                        setDraftTitlesByName((prev) => ({
+                          ...prev,
+                          [app.name]: next,
+                        }))
+                      }
+                      onTitleSave={() => {
+                        const next = (draftTitlesByName[app.name] ?? app.name).trim();
+                        const safeNext = next || app.name;
+                        setTitlesByName((prev) => ({
+                          ...prev,
+                          [app.name]: safeNext,
+                        }));
+                        setDraftTitlesByName((prev) => ({
+                          ...prev,
+                          [app.name]: safeNext,
+                        }));
+                      }}
+                      onTitleRevert={() => {
+                        const saved = getDisplayTitle(app);
+                        setDraftTitlesByName((prev) => ({
+                          ...prev,
+                          [app.name]: saved,
+                        }));
+                      }}
+                      onCardClick={() => setSelectedApp(app.name)}
+                    />
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {!selectedApp && (
+            <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600">
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              <span className="text-xs whitespace-nowrap">
+                {currentPage}/{totalPages}
+              </span>
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+}

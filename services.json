@@ -1,0 +1,162 @@
+[
+  {
+    "name": "user-service",
+    "abbreviation": "US",
+    "liveBranch": "main",
+    "liveCommit": "a1b2c3d",
+    "desiredBranch": "develop",
+    "desiredCommit": "f4e5d6c"
+  },
+  {
+    "name": "product-catalog",
+    "abbreviation": "PC",
+    "liveBranch": "main",
+    "liveCommit": "b2c3d4e",
+    "desiredBranch": "main",
+    "desiredCommit": "b2c3d4e"
+  },
+  {
+    "name": "order-service",
+    "abbreviation": "OS",
+    "liveBranch": "staging",
+    "liveCommit": "c3d4e5f",
+    "desiredBranch": "main",
+    "desiredCommit": "d4e5f6g"
+  },
+  {
+    "name": "payment-gateway",
+    "abbreviation": "PG",
+    "liveBranch": "main",
+    "liveCommit": "d4e5f6g",
+    "desiredBranch": "develop",
+    "desiredCommit": "e5f6g7h"
+  },
+  {
+    "name": "shopping-cart",
+    "abbreviation": "SC",
+    "liveBranch": "develop",
+    "liveCommit": "e5f6g7h",
+    "desiredBranch": "develop",
+    "desiredCommit": "e5f6g7h"
+  },
+  {
+    "name": "inventory-management",
+    "abbreviation": "IM",
+    "liveBranch": "main",
+    "liveCommit": "f6g7h8i",
+    "desiredBranch": "main",
+    "desiredCommit": "f6g7h8i"
+  },
+  {
+    "name": "shipping-service",
+    "abbreviation": "SS",
+    "liveBranch": "staging",
+    "liveCommit": "g7h8i9j",
+    "desiredBranch": "main",
+    "desiredCommit": "h8i9j0k"
+  },
+  {
+    "name": "notification-engine",
+    "abbreviation": "NE",
+    "liveBranch": "main",
+    "liveCommit": "h8i9j0k",
+    "desiredBranch": "develop",
+    "desiredCommit": "i9j0k1l"
+  },
+  {
+    "name": "review-service",
+    "abbreviation": "RS",
+    "liveBranch": "develop",
+    "liveCommit": "i9j0k1l",
+    "desiredBranch": "staging",
+    "desiredCommit": "j0k1l2m"
+  },
+  {
+    "name": "recommendation-engine",
+    "abbreviation": "RE",
+    "liveBranch": "main",
+    "liveCommit": "j0k1l2m",
+    "desiredBranch": "main",
+    "desiredCommit": "j0k1l2m"
+  },
+  {
+    "name": "authentication-service",
+    "abbreviation": "AS",
+    "liveBranch": "main",
+    "liveCommit": "k1l2m3n",
+    "desiredBranch": "main",
+    "desiredCommit": "k1l2m3n"
+  },
+  {
+    "name": "search-service",
+    "abbreviation": "SS",
+    "liveBranch": "develop",
+    "liveCommit": "l2m3n4o",
+    "desiredBranch": "develop",
+    "desiredCommit": "l2m3n4o"
+  },
+  {
+    "name": "pricing-service",
+    "abbreviation": "PS",
+    "liveBranch": "main",
+    "liveCommit": "m3n4o5p",
+    "desiredBranch": "develop",
+    "desiredCommit": "n4o5p6q"
+  },
+  {
+    "name": "promotion-manager",
+    "abbreviation": "PM",
+    "liveBranch": "staging",
+    "liveCommit": "n4o5p6q",
+    "desiredBranch": "main",
+    "desiredCommit": "o5p6q7r"
+  },
+  {
+    "name": "subscription-service",
+    "abbreviation": "SS",
+    "liveBranch": "main",
+    "liveCommit": "o5p6q7r",
+    "desiredBranch": "main",
+    "desiredCommit": "o5p6q7r"
+  },
+  {
+    "name": "analytics-dashboard",
+    "abbreviation": "AD",
+    "liveBranch": "develop",
+    "liveCommit": "p6q7r8s",
+    "desiredBranch": "develop",
+    "desiredCommit": "p6q7r8s"
+  },
+  {
+    "name": "api-gateway",
+    "abbreviation": "AG",
+    "liveBranch": "main",
+    "liveCommit": "q7r8s9t",
+    "desiredBranch": "main",
+    "desiredCommit": "q7r8s9t"
+  },
+  {
+    "name": "admin-console",
+    "abbreviation": "AC",
+    "liveBranch": "main",
+    "liveCommit": "r8s9t0u",
+    "desiredBranch": "staging",
+    "desiredCommit": "s9t0u1v"
+  },
+  {
+    "name": "wishlist-service",
+    "abbreviation": "WS",
+    "liveBranch": "develop",
+    "liveCommit": "s9t0u1v",
+    "desiredBranch": "main",
+    "desiredCommit": "t0u1v2w"
+  },
+  {
+    "name": "reporting-service",
+    "abbreviation": "RS",
+    "liveBranch": "main",
+    "liveCommit": "t0u1v2w",
+    "desiredBranch": "develop",
+    "desiredCommit": "u1v2w3x"
+  }
+]
