@@ -460,35 +460,62 @@ function ServiceCard({
 
   return (
     <div
-      className={`flex rounded-lg shadow-sm overflow-hidden border-2 bg-white border-gray-200`}
+      className={`flex rounded-lg shadow-sm overflow-hidden border-2 bg-white border-gray-200 relative`}
     >
       {/* LEFT status bar */}
       <div className={`w-1.5 ${statusColor}`} />
 
+      {/* Abbreviation Circle - Top Left (moved slightly right) */}
+      <div className={`absolute top-2 left-3 w-9 h-9 rounded-full ${statusColor} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
+        {service.abbreviation}
+      </div>
+
       {/* Card content */}
       <div className="flex-1 p-2 sm:p-3 text-xs sm:text-sm flex flex-col gap-1 sm:gap-2 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-2 ml-10">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate">
               {service.name}
-            </div>
-            <div className="text-xs text-gray-500 truncate">
-              {service.abbreviation}
             </div>
           </div>
         </div>
 
         {/* Meta */}
-        <div className="text-xs flex-1 space-y-0.5 sm:space-y-1 flex flex-col items-center justify-center overflow-y-auto">
-          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Live:</span> <span className="text-gray-700">{service.liveBranch}</span></div>
-          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Commit:</span> <span className="text-gray-700 font-mono">{service.liveCommit}</span></div>
-          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Desired:</span> <span className="text-gray-700">{service.desiredBranch}</span></div>
-          <div className="truncate whitespace-nowrap w-full"><span className="text-gray-600">Desired Commit:</span> <span className="text-gray-700 font-mono">{service.desiredCommit}</span></div>
-          <div className="truncate whitespace-nowrap w-full pt-1">
-            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${isSynced ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+        <div className="text-xs flex-1 flex flex-col justify-between">
+          {/* Centered Synced Pill with Icon */}
+          <div className="flex-1 flex items-center justify-center">
+            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded text-xl font-bold ${isSynced ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+              {isSynced ? (
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+              ) : (
+                <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19V5" /><polyline points="5 12 12 5 19 12" /></svg>
+              )}
               {isSynced ? 'Synced' : 'Out of Sync'}
             </span>
+          </div>
+
+          {/* Live vs Desired Comparison - Bottom */}
+          <div className="grid grid-cols-2 gap-0 mt-auto">
+            {/* Live */}
+            <div className="pr-1 flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 text-gray-700 font-bold text-xs mb-1">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Live
+              </div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">branch:</span> <span className="text-gray-700 text-xs">{service.liveBranch}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">commitId:</span> <span className="text-gray-700 font-mono text-xs">{service.liveCommit.slice(0, 8)}</span></div>
+            </div>
+            
+            {/* Desired */}
+            <div className="pl-1 flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 text-gray-700 font-bold text-xs mb-1">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
+                Desired
+              </div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">branch:</span> <span className="text-gray-700 text-xs">{service.desiredBranch}</span></div>
+              <div className="truncate whitespace-nowrap"><span className="text-gray-600">commitId:</span> <span className="text-gray-700 font-mono text-xs">{service.desiredCommit.slice(0, 8)}</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -703,8 +730,8 @@ export default function ArgoCardsLayout() {
           <div className="flex-1 overflow-hidden">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 h-full grid-rows-2 auto-rows-fr">
               {selectedApp ? (
-                // Show services
-                servicesData.map((service) => (
+                // Show services (alphabetically)
+                [...servicesData].sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
                   <ServiceCard key={service.name} service={service} />
                 ))
               ) : (
