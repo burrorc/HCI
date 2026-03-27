@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import AppModal from "./AppModal";
+import StatusBar from "./StatusBar";
 import {
   LayoutGrid,
   Folder,
@@ -84,6 +85,23 @@ const ProgressingIcon = ({ size = "sm" }: { size?: IconSize }) => {
   const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
   const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
   return (
+    <div className="flex items-center gap-2 text-green-600">
+      <svg
+        className={`${iconClass}`}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
+      <span className={textClass}>Healthy</span>
+    </div>
+  );
+};
+
+const BlueProgressingIcon = ({ size = "sm" }: { size?: IconSize }) => {
+  const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
+  const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
+  return (
     <div className="flex items-center gap-2 text-blue-600">
       <svg
         className={`${iconClass} animate-spin`}
@@ -110,9 +128,12 @@ const DegradedIcon = ({ size = "sm" }: { size?: IconSize }) => {
   const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
   return (
     <div className="flex items-center gap-2 text-red-500">
-      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`}>
-        <circle cx="12" cy="12" r="9" strokeWidth="2" fill="none" />
-        <line x1="8" y1="8" x2="16" y2="16" strokeWidth="2" />
+      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`} fill="none" strokeWidth="2">
+        {/* Broken chain link */}
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        {/* Break symbol - diagonal line */}
+        <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
       </svg>
       <span className={textClass}>Degraded</span>
     </div>
@@ -147,10 +168,10 @@ const OutOfSyncIcon = ({ size = "sm" }: { size?: IconSize }) => {
   const iconClass = size === "lg" ? "w-10 h-10" : "w-4 h-4";
   const textClass = size === "lg" ? "text-2xl font-extrabold" : "text-xs";
   return (
-    <div className="flex items-center gap-2 text-red-500">
-      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`}>
-        <path d="M4 12a8 8 0 0113-5" strokeWidth="2" fill="none" />
-        <polyline points="17,3 17,7 13,7" strokeWidth="2" fill="none" />
+    <div className="flex items-center gap-2 text-yellow-600">
+      <svg viewBox="0 0 24 24" className={`${iconClass} stroke-current`} fill="none" strokeWidth="2">
+        <path d="M12 19V5" />
+        <polyline points="5 12 12 5 19 12" />
       </svg>
       <span className={textClass}>OutOfSync</span>
     </div>
@@ -208,10 +229,23 @@ const DeleteIcon = () => (
 
 const apps: AppItem[] = environmentsData.map((env, i) => {
   const name = `${env.environment}-${env.cluster}-${env.group}`;
+  
+  let status: AppStatus = "Healthy";
+  let synced = true;
+  
+  // Set specific statuses
+  if (i === 4 || i === 22) {
+    status = "Progressing";
+  } else if (i === 0 || i === 10 || i === 18) {
+    synced = false; // Out of Sync
+  } else if (i === 23) {
+    status = "Degraded";
+  }
+  
   return {
     name,
-    status: i % 2 === 0 ? "Healthy" : "Progressing",
-    synced: true,
+    status,
+    synced,
     project: env.gcpProject,
     labels: `environment=${env.environment}, group=${env.group}, region=${env.cluster}`,
     repository: `https://github.com/my-boutique-shop/${env.environment}-${env.cluster}-manifest.git`,
@@ -270,7 +304,13 @@ function AppCard({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const justSavedRef = useRef(false);
   const statusColor =
-    app.status === "Healthy" ? "bg-green-500" : "bg-blue-400";
+    app.status === "Degraded"
+      ? "bg-red-500"
+      : app.status === "Progressing"
+        ? "bg-blue-600"
+        : !app.synced
+          ? "bg-yellow-500"
+          : "bg-green-500";
 
   const renderStatusIcon = (size: IconSize = "sm") => {
     switch (app.status) {
@@ -287,8 +327,12 @@ function AppCard({
     }
   };
 
-  const renderSyncIcon = (size: IconSize = "sm") =>
-    app.synced ? <SyncedIcon size={size} /> : <OutOfSyncIcon size={size} />;
+  const renderSyncIcon = (size: IconSize = "sm") => {
+    if (app.status === "Progressing") {
+      return <BlueProgressingIcon size={size} />;
+    }
+    return app.synced ? <SyncedIcon size={size} /> : <OutOfSyncIcon size={size} />;
+  };
 
   return (
     <div
@@ -544,6 +588,7 @@ export default function ArgoCardsLayout() {
     () => Object.fromEntries(apps.map((a) => [a.name, a.name]))
   );
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
+  const [servicePage, setServicePage] = useState(1);
   const [modalApp, setModalApp] = useState<AppItem | ServiceItem | null>(null);
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
@@ -569,6 +614,13 @@ export default function ArgoCardsLayout() {
   const startIndex = (currentPage - 1) * pageSize;
   const pagedApps = sortedApps.slice(startIndex, startIndex + pageSize);
 
+  const servicePageSize = 16;  // 4 rows × 4 cols
+  const sortedServices = [...servicesData].sort((a, b) => a.name.localeCompare(b.name));
+  const servicePages = Math.max(1, Math.ceil(sortedServices.length / servicePageSize));
+  const currentServicePage = Math.min(servicePage, servicePages);
+  const serviceStartIndex = (currentServicePage - 1) * servicePageSize;
+  const pagedServices = sortedServices.slice(serviceStartIndex, serviceStartIndex + servicePageSize);
+
   const statusCounts = sortedApps.reduce(
     (acc, app) => {
       acc[app.status] = (acc[app.status] || 0) + 1;
@@ -584,13 +636,32 @@ export default function ArgoCardsLayout() {
   );
 
   const statusSegments = [
-    { label: "Healthy", count: statusCounts.Healthy, color: "bg-green-500" },
-    { label: "Progressing", count: statusCounts.Progressing, color: "bg-blue-400" },
-    { label: "Degraded", count: statusCounts.Degraded, color: "bg-red-400" },
-    { label: "Missing", count: statusCounts.Missing, color: "bg-yellow-400" },
-    { label: "Unknown", count: statusCounts.Unknown, color: "bg-gray-400" },
+    { label: "Synced", count: sortedApps.filter(app => app.synced === true).length, color: "bg-green-500" },
+    { label: "Out of Sync", count: sortedApps.filter(app => app.synced === false).length, color: "bg-yellow-500" },
+    { label: "Progressing", count: statusCounts.Progressing, color: "bg-blue-600" },
+    { label: "Degraded", count: statusCounts.Degraded, color: "bg-red-500" },
   ];
   const totalStatus = sortedApps.length || 1;
+
+  // Service status counts
+  const serviceSyncCounts = sortedServices.reduce(
+    (acc, service) => {
+      const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
+      if (isSynced) {
+        acc.Synced = (acc.Synced || 0) + 1;
+      } else {
+        acc["Out of Sync"] = (acc["Out of Sync"] || 0) + 1;
+      }
+      return acc;
+    },
+    { Synced: 0, "Out of Sync": 0 } as Record<string, number>
+  );
+
+  const serviceStatusSegments = [
+    { label: "Synced", count: serviceSyncCounts.Synced, color: "bg-green-500" },
+    { label: "Out of Sync", count: serviceSyncCounts["Out of Sync"], color: "bg-yellow-500" },
+  ];
+  const totalServiceStatus = sortedServices.length || 1;
 
   return (
     <>
@@ -698,51 +769,66 @@ export default function ArgoCardsLayout() {
 
         {/* Progress bar */}
         {!selectedApp && (
-          <div className="px-4 py-2">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
-              {statusSegments
-                .filter((seg) => seg.count > 0)
-                .map((seg) => (
-                  <div
-                    key={seg.label}
-                    className={`${seg.color} h-full`}
-                    style={{ width: `${(seg.count / totalStatus) * 100}%` }}
-                    aria-label={`${seg.label}: ${seg.count}`}
-                  />
-                ))}
-            </div>
+          <StatusBar segments={statusSegments} total={totalStatus} />
+        )}
+
+        {selectedApp && (
+          <StatusBar segments={serviceStatusSegments} total={totalServiceStatus} />
+        )}
+
+        {/* Page selector */}
+        {!selectedApp && (
+          <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600 px-4 py-2">
+            <button
+              className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </button>
+            <span className="text-xs whitespace-nowrap">
+              {currentPage}/{totalPages}
+            </span>
+            <button
+              className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {selectedApp && (
+          <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600 px-4 py-2">
+            <button
+              className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+              onClick={() => setServicePage((p) => Math.max(1, p - 1))}
+              disabled={currentServicePage === 1}
+            >
+              Prev
+            </button>
+            <span className="text-xs whitespace-nowrap">
+              {currentServicePage}/{servicePages}
+            </span>
+            <button
+              className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+              onClick={() => setServicePage((p) => Math.min(servicePages, p + 1))}
+              disabled={currentServicePage === servicePages}
+            >
+              Next
+            </button>
           </div>
         )}
 
         {/* Cards Grid */}
         <div className="flex-1 overflow-hidden p-2 sm:p-3 flex flex-col gap-1 sm:gap-2">
-          {!selectedApp && (
-            <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600">
-              <button
-                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Prev
-              </button>
-              <span className="text-xs whitespace-nowrap">
-                {currentPage}/{totalPages}
-              </span>
-              <button
-                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          )}
 
           <div className="flex-1 overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 h-full grid-rows-2 auto-rows-fr">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 h-full ${selectedApp ? "grid-rows-4" : "auto-rows-fr"}`}>
               {selectedApp ? (
-                // Show services from services.json (alphabetically)
-                [...servicesData].sort((a, b) => a.name.localeCompare(b.name)).map((service) => (
+                // Show services from services.json (paginated)
+                pagedServices.map((service) => (
                   <ServiceCard 
                     key={service.name} 
                     service={service}
@@ -798,7 +884,10 @@ export default function ArgoCardsLayout() {
                           [app.name]: saved,
                         }));
                       }}
-                      onCardClick={() => setSelectedApp(app.name)}
+                      onCardClick={() => {
+                        setSelectedApp(app.name);
+                        setServicePage(1);
+                      }}
                     />
                   );
                 })
@@ -806,7 +895,27 @@ export default function ArgoCardsLayout() {
             </div>
           </div>
 
-          {!selectedApp && (
+          {selectedApp ? (
+            <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600">
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setServicePage((p) => Math.max(1, p - 1))}
+                disabled={currentServicePage === 1}
+              >
+                Prev
+              </button>
+              <span className="text-xs whitespace-nowrap">
+                {currentServicePage}/{servicePages}
+              </span>
+              <button
+                className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
+                onClick={() => setServicePage((p) => Math.min(servicePages, p + 1))}
+                disabled={currentServicePage === servicePages}
+              >
+                Next
+              </button>
+            </div>
+          ) : (
             <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs text-gray-600">
               <button
                 className="px-1.5 py-0.5 bg-gray-200 rounded disabled:opacity-50 text-xs"
