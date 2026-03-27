@@ -288,7 +288,7 @@ function NavItem({ icon, label, active = false, onClick }: NavItemProps) {
 }
 const ArgoLogo = () => (
   <img
-    src="https://jenkins.reporting.globalpay.com/argocd/assets/images/logo.png"
+    src="/Argo CD.svg"
     alt="Argo logo"
     className="w-[74px] h-[74px] object-contain"
   />
@@ -1064,12 +1064,6 @@ export default function ArgoCardsLayout() {
         </div>
       </div>
     </div>
-    <button
-      className="fixed bottom-4 right-4 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 shadow-lg"
-      onClick={() => setIsMiniPlayerOpen(true)}
-    >
-      Push Me
-    </button>
     <MiniPlayer 
       isOpen={isMiniPlayerOpen} 
       onClose={() => setIsMiniPlayerOpen(false)} 
