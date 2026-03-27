@@ -386,7 +386,7 @@ function AppCard({
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex items-center gap-1 rounded border border-transparent bg-gray-50/80 px-1 sm:px-1.5 py-0.5 shadow-inner focus-within:border-gray-300 focus-within:bg-white group h-6">
               <input
-                className="text-xs sm:text-sm font-semibold text-gray-800 bg-transparent border-none focus:outline-none flex-1 truncate"
+                className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 bg-transparent border-none focus:outline-none flex-1 truncate"
                 value={draftTitle}
                 onChange={(e) => onDraftTitleChange(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
