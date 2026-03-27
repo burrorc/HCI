@@ -20,41 +20,93 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
   const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
   const [totalSyncDuration, setTotalSyncDuration] = useState<number>(0);
 
+    const [hasPeaked, setHasPeaked] = useState(false);
+  const parseTimeToSeconds = (timeStr: string) => {
+  const minMatch = timeStr.match(/(\d+)m/);
+  const secMatch = timeStr.match(/(\d+)s/);
+
+  const minutes = minMatch ? parseInt(minMatch[1]) : 0;
+  const seconds = secMatch ? parseInt(secMatch[1]) : 0;
+
+ 
+
+
+  return minutes * 60 + seconds;
+};
+
   // CPU metrics data (in millicores)
-  const [cpuData, setCpuData] = useState<Array<{ used: number; requested: number; limit: number }>>([
-    { used: 105, requested: 100, limit: 500 },
-    { used: 110, requested: 100, limit: 500 },
-    { used: 115, requested: 100, limit: 500 },
-    { used: 108, requested: 100, limit: 500 },
-    { used: 120, requested: 100, limit: 500 },
-    { used: 112, requested: 100, limit: 500 },
-    { used: 118, requested: 100, limit: 500 },
-    { used: 107, requested: 100, limit: 500 },
-  ]);
+ const initialRequested = 100;
+const usedOffset = 75; // match your new value
+
+const initialPoint = {
+  requested: initialRequested,
+  used: initialRequested + usedOffset,
+  limit: 500,
+};
+
+const [cpuData, setCpuData] = useState(
+  Array.from({ length: 720 }, () => initialPoint)
+);
 
   // Update CPU data every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCpuData((prevData) => {
-        // Generate new data point based on last value (slightly variable)
-        const lastPoint = prevData[prevData.length - 1];
-        const change = (Math.random() - 0.5) * 30; // Random change between -15 and +15
-        const newRequested = Math.max(90, Math.min(110, lastPoint.requested + change)); // Clamp between 90 and 110 to stay around 100
-        const newUsed = newRequested + (Math.random() * 10 + 5); // 5-15 millicores higher than requested
-        
-        const newPoint = {
-          used: Math.round(newUsed),
-          requested: Math.round(newRequested),
-          limit: 500,
-        };
-        
-        // Keep only last 8 data points
-        return [...prevData.slice(1), newPoint];
-      });
-    }, 5000); // Update every 5 seconds
+ useEffect(() => {
+  if (isOpen) {
+    setSyncStartTime(Date.now());
+    setHasPeaked(false); // reset state
+  }
+}, [isOpen]);
 
-    return () => clearInterval(interval);
-  }, []);
+useEffect(() => {
+  if (!syncStartTime) return;
+
+  const totalTime = parseTimeToSeconds(time); // peak time in seconds
+
+  const interval = setInterval(() => {
+    const elapsed = (Date.now() - syncStartTime) / 1000;
+
+    const cycleDuration = totalTime * 2;
+    const t = Math.min(elapsed, cycleDuration);
+
+    if (!hasPeaked && elapsed >= totalTime) {
+  setHasPeaked(true);
+}
+
+    // Triangle wave (up then down)
+    const rawProgress =
+      t <= totalTime
+        ? t / totalTime
+        : 1 - (t - totalTime) / totalTime;
+
+    // Optional easing (remove if you want perfectly linear)
+    const progress = 0.5 - Math.cos(rawProgress * Math.PI) / 2;
+
+    setCpuData((prev) => {
+      const limit = 500;
+
+      const requestedBase = 100;
+      const requestedPeak = 350;
+      const usedOffset = 75; // match your new value
+
+      const requested =
+        requestedBase + (requestedPeak - requestedBase) * progress;
+
+      const used = Math.min(
+        requested + usedOffset,
+        limit - 10
+      );
+
+      const newPoint = {
+        used: Math.round(requested + usedOffset),
+        requested: Math.round(requested),
+        limit,
+      };
+
+      return [...prev.slice(-719), newPoint];
+    });
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [syncStartTime, time]);
 
   const tracks = [
     { name: "Blinding Lights", artist: "The Weeknd" },
@@ -365,14 +417,59 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
               <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{liveCommitId}</span>
-              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)' }}>✓</div>
+             {hasPeaked ? (
+  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
+    <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+) : (
+  <div
+    style={{
+      width: '18px',
+      height: '18px',
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+      color: 'white',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      flexShrink: 0,
+      boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)',
+    }}
+  >
+    ✓
+  </div>
+)}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
               <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{desiredCommitId}</span>
-              <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
-                <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
-                <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              {hasPeaked ? (
+  <div
+    style={{
+      width: '18px',
+      height: '18px',
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+      color: 'white',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      flexShrink: 0,
+      boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)',
+    }}
+  >
+    ✓
+  </div>
+) : (
+  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
+    <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)}
             </div>
           </div>
         </div>
