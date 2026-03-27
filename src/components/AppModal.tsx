@@ -8,9 +8,10 @@ export interface AppModalProps {
   syncedLiveData?: { liveBranch: string; liveCommit: string };
   onSync?: (app: any) => void;
   onOpenMiniPlayer?: (props: { name: string; time: string; liveCommitId: string; desiredCommitId: string }) => void;
+  onOpenBar?: (props: { name: string; time: string; liveCommitId: string; desiredCommitId: string }) => void;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, syncedLiveData, onSync, onOpenMiniPlayer }) => {
+const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, syncedLiveData, onSync, onOpenMiniPlayer, onOpenBar }) => {
   const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);

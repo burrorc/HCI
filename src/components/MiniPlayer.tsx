@@ -630,7 +630,32 @@ useEffect(() => {
       <div className="pip-header" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{name.toUpperCase()} CPU USAGE</span>
         <span style={{ fontSize: '12px', fontWeight: '500', color: 'white', textAlign: 'center' }}>EST {formatTime(remainingTime)} REMAINING</span>
-
+        <button
+          onClick={() => {
+            // TODO: Add minimize functionality here
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            padding: '0 4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            lineHeight: '1',
+            width: '24px',
+            height: '24px',
+          }}
+          title="Maximize"
+        >
+          <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: 'none', stroke: 'white', strokeWidth: '1.5' }}>
+            {/* Outer rectangle */}
+            <rect x="1" y="1" width="22" height="22" rx="1" />
+            {/* Inner rectangle (minimize state indicator) - bottom right corner */}
+            <rect x="15" y="19" width="8" height="4" rx="0.5" fill="white" />
+          </svg>
+        </button>
       </div>
 
       {/* Content - CPU Graph */}

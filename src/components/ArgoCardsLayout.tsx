@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import AppModal from "./AppModal";
 import MiniPlayer from "./MiniPlayer";
+import MiniPlayerBar from "./MiniPlayerBar";
 import StatusBar from "./StatusBar";
 import {
   LayoutGrid,
@@ -607,6 +608,13 @@ export default function ArgoCardsLayout() {
     liveCommitId: "",
     desiredCommitId: "",
   });
+  const [isBarOpen, setIsBarOpen] = useState(false);
+  const [barProps, setBarProps] = useState({
+    name: "",
+    time: "",
+    liveCommitId: "",
+    desiredCommitId: "",
+  });
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -721,6 +729,10 @@ export default function ArgoCardsLayout() {
         onOpenMiniPlayer={(props) => {
           setMiniPlayerProps(props);
           setIsMiniPlayerOpen(true);
+        }}
+        onOpenBar={(props) => {
+          setBarProps(props);
+          setIsBarOpen(true);
         }}
         onSync={(app) => {
           if (app && 'name' in app) {
@@ -1045,6 +1057,15 @@ export default function ArgoCardsLayout() {
       time={miniPlayerProps.time}
       liveCommitId={miniPlayerProps.liveCommitId}
       desiredCommitId={miniPlayerProps.desiredCommitId}
+    />
+    <MiniPlayerBar
+      isOpen={isBarOpen}
+      onClose={() => setIsBarOpen(false)}
+      autoOpenPiP={true}
+      name={barProps.name}
+      time={barProps.time}
+      liveCommitId={barProps.liveCommitId}
+      desiredCommitId={barProps.desiredCommitId}
     />
     </>
   );
