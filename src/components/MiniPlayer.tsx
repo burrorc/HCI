@@ -17,17 +17,19 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
+  const [totalSyncDuration, setTotalSyncDuration] = useState<number>(0);
 
   // CPU metrics data (in millicores)
   const [cpuData, setCpuData] = useState<Array<{ used: number; requested: number; limit: number }>>([
-    { used: 100, requested: 200, limit: 500 },
-    { used: 150, requested: 200, limit: 500 },
-    { used: 200, requested: 200, limit: 500 },
-    { used: 180, requested: 200, limit: 500 },
-    { used: 220, requested: 200, limit: 500 },
-    { used: 250, requested: 200, limit: 500 },
-    { used: 210, requested: 200, limit: 500 },
-    { used: 190, requested: 200, limit: 500 },
+    { used: 105, requested: 100, limit: 500 },
+    { used: 110, requested: 100, limit: 500 },
+    { used: 115, requested: 100, limit: 500 },
+    { used: 108, requested: 100, limit: 500 },
+    { used: 120, requested: 100, limit: 500 },
+    { used: 112, requested: 100, limit: 500 },
+    { used: 118, requested: 100, limit: 500 },
+    { used: 107, requested: 100, limit: 500 },
   ]);
 
   // Update CPU data every 5 seconds
@@ -36,12 +38,13 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
       setCpuData((prevData) => {
         // Generate new data point based on last value (slightly variable)
         const lastPoint = prevData[prevData.length - 1];
-        const change = (Math.random() - 0.5) * 60; // Random change between -30 and +30
-        const newUsed = Math.max(50, Math.min(350, lastPoint.used + change)); // Clamp between 50 and 350
+        const change = (Math.random() - 0.5) * 30; // Random change between -15 and +15
+        const newRequested = Math.max(90, Math.min(110, lastPoint.requested + change)); // Clamp between 90 and 110 to stay around 100
+        const newUsed = newRequested + (Math.random() * 10 + 5); // 5-15 millicores higher than requested
         
         const newPoint = {
           used: Math.round(newUsed),
-          requested: 200,
+          requested: Math.round(newRequested),
           limit: 500,
         };
         
