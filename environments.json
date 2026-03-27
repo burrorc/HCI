@@ -2,121 +2,169 @@
   {
     "environment": "dev",
     "cluster": "east",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "dev",
     "cluster": "east",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "dev",
     "cluster": "east",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "dev",
     "cluster": "central",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "dev",
     "cluster": "central",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "dev",
     "cluster": "central",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-dev"
   },
   {
     "environment": "qa",
     "cluster": "east",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "qa",
     "cluster": "east",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "qa",
     "cluster": "east",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "qa",
     "cluster": "central",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "qa",
     "cluster": "central",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "qa",
     "cluster": "central",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-qa"
   },
   {
     "environment": "stg",
     "cluster": "east",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "stg",
     "cluster": "east",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "stg",
     "cluster": "east",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "stg",
     "cluster": "central",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "stg",
     "cluster": "central",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "stg",
     "cluster": "central",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-stg"
   },
   {
     "environment": "prod",
     "cluster": "east",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-prod"
   },
   {
     "environment": "prod",
     "cluster": "east",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-prod"
   },
   {
     "environment": "prod",
     "cluster": "east",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-east",
+    "gcpProject": "my-boutique-shop-prod"
   },
   {
     "environment": "prod",
     "cluster": "central",
-    "group": "applications"
+    "group": "applications",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-prod"
   },
   {
     "environment": "prod",
     "cluster": "central",
-    "group": "secrets"
+    "group": "secrets",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-prod"
   },
   {
     "environment": "prod",
     "cluster": "central",
-    "group": "configurations"
+    "group": "configurations",
+    "destination": "GKE-central",
+    "gcpProject": "my-boutique-shop-prod"
   }
 ]
