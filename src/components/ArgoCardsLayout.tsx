@@ -598,6 +598,7 @@ export default function ArgoCardsLayout() {
   const [modalApp, setModalApp] = useState<AppItem | ServiceItem | null>(null);
   const [syncingApps, setSyncingApps] = useState<Set<string>>(new Set());
   const [syncedApps, setSyncedApps] = useState<Set<string>>(new Set());
+  const [syncedLiveData, setSyncedLiveData] = useState<Record<string, { liveBranch: string; liveCommit: string }>>({});
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -631,10 +632,21 @@ export default function ArgoCardsLayout() {
 
   const servicePageSize = 16;  // 4 rows × 4 cols
   const sortedServices = [...servicesData].map(service => {
+    const synced = syncedLiveData[service.name];
     if (syncingApps.has(service.name)) {
-      return { ...service, status: "Progressing" as const };
+      return { 
+        ...service, 
+        status: "Progressing" as const,
+        liveBranch: synced?.liveBranch ?? service.liveBranch,
+        liveCommit: synced?.liveCommit ?? service.liveCommit,
+      };
     } else if (syncedApps.has(service.name)) {
-      return { ...service, status: "Healthy" as const };
+      return { 
+        ...service, 
+        status: "Healthy" as const,
+        liveBranch: synced?.liveBranch ?? service.liveBranch,
+        liveCommit: synced?.liveCommit ?? service.liveCommit,
+      };
     }
     return service;
   }).sort((a, b) => a.name.localeCompare(b.name));
@@ -658,8 +670,8 @@ export default function ArgoCardsLayout() {
   );
 
   const statusSegments = [
-    { label: "Synced", count: sortedApps.filter(app => app.synced === true).length, color: "bg-green-500" },
-    { label: "Out of Sync", count: sortedApps.filter(app => app.synced === false).length, color: "bg-yellow-500" },
+    { label: "Synced", count: sortedApps.filter(app => app.synced === true && !syncingApps.has(app.name)).length, color: "bg-green-500" },
+    { label: "Out of Sync", count: sortedApps.filter(app => app.synced === false && !syncingApps.has(app.name)).length, color: "bg-yellow-500" },
     { label: "Progressing", count: statusCounts.Progressing, color: "bg-blue-600" },
     { label: "Degraded", count: statusCounts.Degraded, color: "bg-red-500" },
   ];
@@ -668,20 +680,25 @@ export default function ArgoCardsLayout() {
   // Service status counts
   const serviceSyncCounts = sortedServices.reduce(
     (acc, service) => {
-      const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
-      if (isSynced) {
-        acc.Synced = (acc.Synced || 0) + 1;
+      if (syncingApps.has(service.name)) {
+        acc.Progressing = (acc.Progressing || 0) + 1;
       } else {
-        acc["Out of Sync"] = (acc["Out of Sync"] || 0) + 1;
+        const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
+        if (isSynced) {
+          acc.Synced = (acc.Synced || 0) + 1;
+        } else {
+          acc["Out of Sync"] = (acc["Out of Sync"] || 0) + 1;
+        }
       }
       return acc;
     },
-    { Synced: 0, "Out of Sync": 0 } as Record<string, number>
+    { Synced: 0, "Out of Sync": 0, Progressing: 0 } as Record<string, number>
   );
 
   const serviceStatusSegments = [
     { label: "Synced", count: serviceSyncCounts.Synced, color: "bg-green-500" },
     { label: "Out of Sync", count: serviceSyncCounts["Out of Sync"], color: "bg-yellow-500" },
+    { label: "Progressing", count: serviceSyncCounts.Progressing, color: "bg-blue-600" },
   ];
   const totalServiceStatus = sortedServices.length || 1;
 
@@ -692,6 +709,7 @@ export default function ArgoCardsLayout() {
         onClose={() => setModalApp(null)} 
         selectedAppName={selectedApp || undefined}
         isSyncing={modalApp ? syncingApps.has(modalApp.name) : false}
+        syncedLiveData={modalApp ? syncedLiveData[modalApp.name] : undefined}
         onSync={(app) => {
           if (app && 'name' in app) {
             // Parse time from app data (e.g., "1m45s" -> milliseconds)
@@ -706,6 +724,15 @@ export default function ArgoCardsLayout() {
             
             // Add app to syncing set
             setSyncingApps(prev => new Set([...prev, app.name]));
+            
+            // Update synced live data with desired values
+            setSyncedLiveData(prev => ({
+              ...prev,
+              [app.name]: {
+                liveBranch: app.desiredBranch,
+                liveCommit: app.desiredCommit,
+              }
+            }));
             
             // After duration expires, move to synced
             setTimeout(() => {

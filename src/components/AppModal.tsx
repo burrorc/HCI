@@ -5,10 +5,11 @@ export interface AppModalProps {
   onClose: () => void;
   selectedAppName?: string;
   isSyncing?: boolean;
+  syncedLiveData?: { liveBranch: string; liveCommit: string };
   onSync?: (app: any) => void;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, onSync }) => {
+const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, syncedLiveData, onSync }) => {
   const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -36,7 +37,7 @@ const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSy
 
   console.log("Modal app data:", app);
 
-  const isSynced = !isSyncing && !isParentSyncing && app.liveBranch === app.desiredBranch && app.liveCommit === app.desiredCommit;
+  const isSynced = !isSyncing && !isParentSyncing && (syncedLiveData?.liveBranch || app.liveBranch) === app.desiredBranch && (syncedLiveData?.liveCommit || app.liveCommit) === app.desiredCommit;
 
   const generateYaml = (branch: string, commitId: string) => {
     try {
@@ -117,7 +118,7 @@ spec:
   const getHighlightedYaml = () => {
     if (!yamlMode) return null;
 
-    const liveYaml = generateYaml(app.liveBranch || "", app.liveCommit || "");
+    const liveYaml = generateYaml(syncedLiveData?.liveBranch || app.liveBranch || "", syncedLiveData?.liveCommit || app.liveCommit || "");
     const desiredYaml = generateYaml(app.desiredBranch || "", app.desiredCommit || "");
     
     const yamlToDisplay = yamlMode === "live" ? liveYaml : desiredYaml;
@@ -201,16 +202,16 @@ spec:
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {(app.liveBranch || app.desiredBranch) && (
+                  {((syncedLiveData?.liveBranch || app.liveBranch) || app.desiredBranch) && (
                     <div>
                       <div className="text-xs text-gray-500">branch</div>
-                      <div className="font-mono text-sm text-gray-800 break-all">{app.liveBranch || "-"}</div>
+                      <div className="font-mono text-sm text-gray-800 break-all">{syncedLiveData?.liveBranch || app.liveBranch || "-"}</div>
                     </div>
                   )}
-                  {(app.liveCommit || app.desiredCommit) && (
+                  {((syncedLiveData?.liveCommit || app.liveCommit) || app.desiredCommit) && (
                     <div>
                       <div className="text-xs text-gray-500">commitId</div>
-                      <div className="font-mono text-sm text-gray-800 break-all">{app.liveCommit || "-"}</div>
+                      <div className="font-mono text-sm text-gray-800 break-all">{syncedLiveData?.liveCommit || app.liveCommit || "-"}</div>
                     </div>
                   )}
                 </div>
