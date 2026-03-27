@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import MiniPlayer from "./MiniPlayer";
 
 export interface AppModalProps {
   app: any;
@@ -8,19 +7,13 @@ export interface AppModalProps {
   isSyncing?: boolean;
   syncedLiveData?: { liveBranch: string; liveCommit: string };
   onSync?: (app: any) => void;
+  onOpenMiniPlayer?: (props: { name: string; time: string; liveCommitId: string; desiredCommitId: string }) => void;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, syncedLiveData, onSync }) => {
+const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, syncedLiveData, onSync, onOpenMiniPlayer }) => {
   const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [miniPlayerIsOpen, setMiniPlayerIsOpen] = useState(false);
-  const [miniPlayerProps, setMiniPlayerProps] = useState({
-    name: "",
-    time: "",
-    liveCommitId: "",
-    desiredCommitId: "",
-  });
   const [moreOptions, setMoreOptions] = useState({
     force: false,
     replace: false,
@@ -420,16 +413,19 @@ spec:
           </button>
           <button 
             onClick={() => {
-              setMiniPlayerProps({
-                name: app.name || "",
-                time: app.time || "0s",
-                liveCommitId: syncedLiveData?.liveCommit || app.liveCommit || "",
-                desiredCommitId: app.desiredCommit || "",
-              });
-              setMiniPlayerIsOpen(true);
+              if (onOpenMiniPlayer) {
+                onOpenMiniPlayer({
+                  name: app.name || "",
+                  time: app.time || "0s",
+                  liveCommitId: syncedLiveData?.liveCommit || app.liveCommit || "",
+                  desiredCommitId: app.desiredCommit || "",
+                });
+              }
               if (onSync) {
                 onSync(app);
               }
+              // Close modal after brief delay to allow MiniPlayer to render
+              setTimeout(onClose, 100);
             }}
             className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
           >
@@ -437,15 +433,6 @@ spec:
           </button>
         </div>
       </div>
-      <MiniPlayer
-        isOpen={miniPlayerIsOpen}
-        onClose={() => setMiniPlayerIsOpen(false)}
-        autoOpenPiP={true}
-        name={miniPlayerProps.name}
-        time={miniPlayerProps.time}
-        liveCommitId={miniPlayerProps.liveCommitId}
-        desiredCommitId={miniPlayerProps.desiredCommitId}
-      />
     </div>
   );
 };

@@ -601,6 +601,12 @@ export default function ArgoCardsLayout() {
   const [syncedApps, setSyncedApps] = useState<Set<string>>(new Set());
   const [syncedLiveData, setSyncedLiveData] = useState<Record<string, { liveBranch: string; liveCommit: string }>>({});
   const [isMiniPlayerOpen, setIsMiniPlayerOpen] = useState(false);
+  const [miniPlayerProps, setMiniPlayerProps] = useState({
+    name: "",
+    time: "",
+    liveCommitId: "",
+    desiredCommitId: "",
+  });
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -712,6 +718,10 @@ export default function ArgoCardsLayout() {
         selectedAppName={selectedApp || undefined}
         isSyncing={modalApp ? syncingApps.has(modalApp.name) : false}
         syncedLiveData={modalApp ? syncedLiveData[modalApp.name] : undefined}
+        onOpenMiniPlayer={(props) => {
+          setMiniPlayerProps(props);
+          setIsMiniPlayerOpen(true);
+        }}
         onSync={(app) => {
           if (app && 'name' in app) {
             // Parse time from app data (e.g., "1m45s" -> milliseconds)
@@ -1027,7 +1037,15 @@ export default function ArgoCardsLayout() {
     >
       Push Me
     </button>
-    <MiniPlayer isOpen={isMiniPlayerOpen} onClose={() => setIsMiniPlayerOpen(false)} autoOpenPiP={true} />
+    <MiniPlayer 
+      isOpen={isMiniPlayerOpen} 
+      onClose={() => setIsMiniPlayerOpen(false)} 
+      autoOpenPiP={true}
+      name={miniPlayerProps.name}
+      time={miniPlayerProps.time}
+      liveCommitId={miniPlayerProps.liveCommitId}
+      desiredCommitId={miniPlayerProps.desiredCommitId}
+    />
     </>
   );
 

@@ -14,13 +14,15 @@ interface MiniPlayerProps {
 const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = false, name = "placeholder-deployment-14331567", time = "1m30s", liveCommitId = "abc123", desiredCommitId = "def456" }) => {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSize, setPipSize] = useState<'small' | 'large'>('large');
-  const [isMinimized, setIsMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
   const [totalSyncDuration, setTotalSyncDuration] = useState<number>(0);
 
     const [hasPeaked, setHasPeaked] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const audioContextRef = useRef<any>(null);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
   const parseTimeToSeconds = (timeStr: string) => {
   const minMatch = timeStr.match(/(\d+)m/);
   const secMatch = timeStr.match(/(\d+)s/);
@@ -53,8 +55,10 @@ const [cpuData, setCpuData] = useState(
   if (isOpen) {
     setSyncStartTime(Date.now());
     setHasPeaked(false); // reset state
+    setIsComplete(false); // reset completion state
+    setRemainingTime(parseTimeToSeconds(time) * 2); // Set to full duration
   }
-}, [isOpen]);
+}, [isOpen, time]);
 
 useEffect(() => {
   if (!syncStartTime) return;
@@ -69,6 +73,10 @@ useEffect(() => {
 
     if (!hasPeaked && elapsed >= totalTime) {
   setHasPeaked(true);
+}
+
+    if (elapsed >= cycleDuration && !isComplete) {
+  setIsComplete(true);
 }
 
     // Triangle wave (up then down)
@@ -106,7 +114,23 @@ useEffect(() => {
   }, 5000);
 
   return () => clearInterval(interval);
-}, [syncStartTime, time]);
+}, [syncStartTime, time, hasPeaked, isComplete]);
+
+// Update timer every second
+useEffect(() => {
+  if (!syncStartTime || isComplete) return;
+
+  const totalTime = parseTimeToSeconds(time);
+  const cycleDuration = totalTime * 2;
+
+  const timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - syncStartTime) / 1000;
+    const remaining = Math.max(0, cycleDuration - elapsed);
+    setRemainingTime(remaining);
+  }, 1000);
+
+  return () => clearInterval(timerInterval);
+}, [syncStartTime, time, isComplete]);
 
   const tracks = [
     { name: "Blinding Lights", artist: "The Weeknd" },
@@ -115,6 +139,95 @@ useEffect(() => {
     { name: "As It Was", artist: "Harry Styles" },
     { name: "Anti-Hero", artist: "Taylor Swift" },
   ];
+
+  const Confetti = () => {
+    const confettiPieces = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: 2 + Math.random() * 1,
+      color: ['#fbbf24', '#34d399', '#60a5fa', '#f87171', '#a78bfa'][Math.floor(Math.random() * 5)],
+    }));
+
+    return (
+      <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
+        <style>{`
+          @keyframes fall {
+            to {
+              transform: translateY(400px) rotate(720deg);
+              opacity: 0;
+            }
+          }
+        `}</style>
+        {confettiPieces.map((piece) => (
+          <div
+            key={piece.id}
+            style={{
+              position: 'absolute',
+              left: `${piece.left}%`,
+              top: '-10px',
+              width: '10px',
+              height: '10px',
+              backgroundColor: piece.color,
+              borderRadius: '50%',
+              animation: `fall ${piece.duration}s linear ${piece.delay}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const playCelebrationSound = () => {
+    try {
+      // Initialize or reuse audio context
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const audioContext = audioContextRef.current;
+      
+      // Resume context if suspended (required by browser policy)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      const now = audioContext.currentTime;
+      
+      // Create a celebratory ascending note sequence
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      const noteDuration = 0.15;
+      
+      notes.forEach((freq, idx) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        const startTime = now + idx * noteDuration;
+        const endTime = startTime + noteDuration;
+        
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, endTime);
+        
+        osc.start(startTime);
+        osc.stop(endTime);
+      });
+    } catch (err) {
+      console.log('Could not play celebration sound:', err);
+    }
+  };
+
+  // Play celebration sound when sync completes
+  useEffect(() => {
+    if (isComplete) {
+      playCelebrationSound();
+    }
+  }, [isComplete]);
 
   const handleOpenPiP = useCallback(async () => {
     try {
@@ -163,10 +276,17 @@ useEffect(() => {
           padding: 0;
           box-sizing: border-box;
         }
+        html, body {
+          height: 100%;
+          width: 100%;
+        }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
           background-color: #fff;
           color: #333;
+          height: 100vh;
+          margin: 0;
+          padding: 0;
         }
         .pip-container {
           width: 100%;
@@ -311,6 +431,8 @@ useEffect(() => {
     onClose();
   };
 
+
+
   const currentTrack = tracks[currentTrackIndex];
 
   const handlePrevTrack = () => {
@@ -418,9 +540,8 @@ useEffect(() => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
               <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{liveCommitId}</span>
              {hasPeaked ? (
-  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
-    <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
-    <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: '#eab308', flexShrink: 0 }}>
+    <path d="M12 2L2 20h20L12 2z" />
   </svg>
 ) : (
   <div
@@ -465,9 +586,8 @@ useEffect(() => {
     ✓
   </div>
 ) : (
-  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
-    <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
-    <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: '#eab308', flexShrink: 0 }}>
+    <path d="M12 2L2 20h20L12 2z" />
   </svg>
 )}
             </div>
@@ -481,36 +601,42 @@ useEffect(() => {
     const latestData = cpuData[cpuData.length - 1];
     const usagePercent = Math.round((latestData.used / latestData.limit) * 100);
     
+    if (isComplete) {
+      return (
+        <div className="pip-container">
+          <div style={{ width: '100%', height: '100%', backgroundColor: '#16a34a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+            <Confetti />
+            <div style={{ width: '80px', height: '80px', backgroundColor: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+              <svg viewBox="0 0 24 24" style={{ width: '60px', height: '60px', fill: '#16a34a' }}>
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+              </svg>
+            </div>
+            <div style={{ color: 'white', fontSize: '24px', fontWeight: 'bold', textAlign: 'center' }}>Sync Complete!</div>
+            <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', textAlign: 'center', marginTop: '12px' }}>{name.toUpperCase()}</div>
+          </div>
+        </div>
+      );
+    }
+    
+    const formatTime = (seconds: number) => {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
     <div className="pip-container">
       {/* Header */}
       <div className="pip-header" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{name.toUpperCase()} CPU USAGE</span>
-        <button
-          onClick={() => setIsMinimized(!isMinimized)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'white',
-            fontSize: '18px',
-            cursor: 'pointer',
-            padding: '0 4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          title={isMinimized ? "Restore" : "Minimize"}
-        >
-          {isMinimized ? '▢' : '−'}
-        </button>
+        <span style={{ fontSize: '12px', fontWeight: '500', color: 'white', textAlign: 'center' }}>EST {formatTime(remainingTime)} REMAINING</span>
+
       </div>
 
       {/* Content - CPU Graph */}
-      {!isMinimized && (
-        <div className="pip-content">
-          <CPUGraphChart />
-        </div>
-      )}
+      <div className="pip-content">
+        <CPUGraphChart />
+      </div>
     </div>
   );
   };
@@ -524,20 +650,12 @@ useEffect(() => {
 
   return (
     <>
-      <div className={`fixed z-[9999] ${isMinimized ? 'bottom-4 right-4 w-48' : 'bottom-6 right-6 w-96'}`}>
-        <div className={`bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200 ${isMinimized ? 'max-h-16' : ''}`}>
+      <div className="fixed z-[9999] bottom-6 right-6 w-96">
+        <div className="bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-bold">{isMinimized ? '🎵' : 'Mini Player'}</h2>
+            <h2 className="text-lg font-bold">Mini Player</h2>
             <div className="flex gap-2">
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="text-gray-600 hover:text-gray-800 text-lg"
-                aria-label={isMinimized ? "Expand" : "Minimize"}
-                title={isMinimized ? "Expand" : "Minimize"}
-              >
-                {isMinimized ? '▢' : '−'}
-              </button>
               <button
                 onClick={handleOpenPiP}
                 className="text-blue-600 hover:text-blue-700 text-lg"
@@ -557,37 +675,33 @@ useEffect(() => {
           </div>
 
           {/* Content */}
-          {!isMinimized && (
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Used:</span>
-                  <span className="font-semibold text-blue-600">{cpuData[cpuData.length - 1].used}m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Requested:</span>
-                  <span className="font-semibold text-green-600">{cpuData[cpuData.length - 1].requested}m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Limit:</span>
-                  <span className="font-semibold text-red-600">{cpuData[cpuData.length - 1].limit}m</span>
-                </div>
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-gray-500">% of Limit</div>
-                  <div className="text-lg font-bold text-gray-800">
-                    {Math.round((cpuData[cpuData.length - 1].used / cpuData[cpuData.length - 1].limit) * 100)}%
-                  </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Used:</span>
+                <span className="font-semibold text-blue-600">{cpuData[cpuData.length - 1].used}m</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Requested:</span>
+                <span className="font-semibold text-green-600">{cpuData[cpuData.length - 1].requested}m</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Limit:</span>
+                <span className="font-semibold text-red-600">{cpuData[cpuData.length - 1].limit}m</span>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="text-xs text-gray-500">% of Limit</div>
+                <div className="text-lg font-bold text-gray-800">
+                  {Math.round((cpuData[cpuData.length - 1].used / cpuData[cpuData.length - 1].limit) * 100)}%
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Footer with Controls */}
-          {!isMinimized && (
-            <div className="p-4 border-t flex flex-col gap-2">
-              {/* Add your custom controls here */}
-            </div>
-          )}
+          <div className="p-4 border-t flex flex-col gap-2">
+            {/* Add your custom controls here */}
+          </div>
         </div>
       </div>
 
