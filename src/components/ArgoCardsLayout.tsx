@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import AppModal from "./AppModal";
+import MiniPlayer from "./MiniPlayer";
 import StatusBar from "./StatusBar";
 import {
   LayoutGrid,
@@ -599,6 +600,7 @@ export default function ArgoCardsLayout() {
   const [syncingApps, setSyncingApps] = useState<Set<string>>(new Set());
   const [syncedApps, setSyncedApps] = useState<Set<string>>(new Set());
   const [syncedLiveData, setSyncedLiveData] = useState<Record<string, { liveBranch: string; liveCommit: string }>>({});
+  const [isMiniPlayerOpen, setIsMiniPlayerOpen] = useState(false);
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -1019,6 +1021,13 @@ export default function ArgoCardsLayout() {
         </div>
       </div>
     </div>
+    <button
+      className="fixed bottom-4 right-4 px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 shadow-lg"
+      onClick={() => setIsMiniPlayerOpen(true)}
+    >
+      Push Me
+    </button>
+    <MiniPlayer isOpen={isMiniPlayerOpen} onClose={() => setIsMiniPlayerOpen(false)} autoOpenPiP={true} />
     </>
   );
 

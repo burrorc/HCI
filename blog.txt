@@ -1,0 +1,121 @@
+Chrome for Developers
+Blog
+Was this helpful?
+
+How Spotify used the Picture-in-Picture API to build the Spotify Miniplayer
+
+
+
+
+Guido Kessels
+Guido Kessels
+François Beaufort
+François Beaufort
+Spotify, the world's most popular audio streaming subscription service, continuously aims to improve the way users consume audio and video content. Offering an extensive library of music, podcasts and audiobooks, it caters to millions of users daily on mobile, PC, and other platforms.
+
+Recently Spotify released the Spotify Miniplayer for their desktop and web player clients. The Miniplayer is designed to offer essential playback controls in a small, compact window that stays on top, providing users with constant access to Spotify. This has been a long requested feature, and enables users to seamlessly multitask in different windows and apps while enjoying their favorite artists, playlists and podcasts on Spotify.
+
+What follows is a detailed look into the development of the Miniplayer, from the initial "canvas hack" to the more advanced, user-friendly version built on the new Document Picture-in-Picture API.
+
+The "canvas hack"
+The initial iteration of the Miniplayer was launched in 2019 on Spotify's Web Player as a hack project. The objective was to employ the browser's Picture-in-Picture (PiP) API for <video> to display album art in an always-on-top window. However, this API was primarily designed for video elements and it was not possible to show album art images. Spotify circumvented this by rendering the album art to a canvas element and using the HTMLCanvasElement captureStream() method to obtain a real-time MediaStream object. This stream then serves as the source for the video used for the PiP API. This approach was based on Google Chrome's "Audio Playlist" sample.
+
+Spotify combined the canvas with the appropriate action handlers set in the Media Session API to control which player controls would appear in the PiP window. This gave users a floating window with album art and player controls, which they could use to control playback while focusing on other tasks.
+
+Screenshot of the basic Spotify Miniplayer window.
+
+This allowed Spotify to have a basic Miniplayer. However, the approach had several limitations:
+
+Video subtitles are not supported inside the PiP window. Because Spotify was required to show subtitles on all videos they were forced to close the PiP window as soon as a video started playing.
+Player controls are only visible if the playback is happening locally. Spotify allows remote playback using Spotify Connect (and other protocols) and wants the user to be able to control this playback as well
+There is no support for customizing the look-and-feel of the PiP window. Spotify could only display artwork and use the player controls that are provided by Chrome, preventing them from adding the Spotify branding or additional player controls.
+The lack of control over the user interface, and inability to add Spotify specific features here (for example, liking a track) meant that they didn't feel this approach was a good fit for their desktop client.
+
+Document Picture-in-Picture: The evolution of the Miniplayer
+In early 2023, Spotify learned about Google Chrome's renewed interest in launching a new API that would allow arbitrary HTML content to be displayed inside the PiP window, known as the Document Picture-in-Picture API. This development was exciting for Spotify as it would grant them full control over the PiP window's appearance. Spotify collaborated with the Chrome team during their Origin Trial to develop a new Miniplayer built on the Document Picture-in-Picture API.
+
+The Document PiP API lets you open a new always-on-top window to which you can attach elements. As the Spotify Web Player is a React web application, Spotify used ReactDOM's createPortal() method to render custom components into the PiP window from the main application, giving full control over the Miniplayer's appearance and features.
+
+The new Document Picture-in-Picture API also addressed Spotify's previous issues:
+
+Videos inside the PiP window are regular video elements and have full support for subtitles.
+With full control over the UI, the player controls can be shown even when playback is happening remotely using Spotify Connect.
+Spotify was able to incorporate their look-and-feel and player controls, enhancing the user experience.
+They were able to bring support for the Document PiP API to Spotify's Desktop client, allowing them to bring the Miniplayer to millions of Desktop users.
+Screenshot of the new Spotify Miniplayer window.
+
+Create a Picture-in-Picture window using React
+The following example demonstrates how you can use Document Picture-in-Picture in React, just like the Spotify team. You'll create two React components: MyFeature and PiPContainer.
+
+The MyFeature component is responsible for managing the Picture-in-Picture window. It renders a button that toggles the Picture-in-Picture window and renders the PiPContainer component. It also subscribes to the Picture-in-Picture window's "pagehide" event to update the state when the window is closed.
+
+
+const MyFeature = () => {
+  const [pipWindow, setPiPWindow] = useState<Window | null>(
+    documentPictureInPicture.window
+  );
+
+  const handleClick = useCallback(async () => {
+    if (pipWindow) {
+      pipWindow.close();
+    } else {
+      const newWindow = await documentPictureInPicture.requestWindow();
+      setPiPWindow(newWindow);
+    }
+  }, [pipWindow]);
+
+  useEffect(() => {
+    const handleWindowClose = (): void => {
+      setPiPWindow(null);
+    };
+
+    pipWindow?.addEventListener("pagehide", handleWindowClose);
+
+    return () => {
+      pipWindow?.removeEventListener("pagehide", handleWindowClose);
+    };
+  }, [pipWindow]);
+
+  return (
+    <>
+      <button onClick={handleClick}>
+        {pipWindow ? "Close PiP Window" : "Open PiP Window"}
+      </button>
+      <PiPContainer pipWindow={pipWindow}>Hello World 👋!</PiPContainer>
+    </>
+  );
+};
+The PiPContainer component uses ReactDOM's createPortal() method to render content into the Picture-in-Picture window.
+
+Note: To ensure consistent styling, Spotify uses a cloneStyles() function to copy styles from the main window to the Picture-in-Picture window. This function is not included in this snippet, but you can see an example in Picture-in-Picture for any element, not just <video>.
+
+type Props = PropsWithChildren<{
+  pipWindow: Window | null;
+}>;
+
+const PiPContainer = ({ pipWindow, children }: Props) => {
+  useEffect(() => {
+    if (pipWindow) {
+      cloneStyles(window.document, pipWindow.document);
+    }
+  }, [pipWindow]);
+
+  return pipWindow ? createPortal(children, pipWindow.document.body) : null;
+};
+What's next
+As Spotify continues to advance and innovate, they remain committed to enhancing the Miniplayer, and plan to further refine its features and user experience. While not yet able to commit to specific features, they are excited about the future possibilities of the Miniplayer.
+
+Screenshot of the different shapes of the Spotify Miniplayer window.
+
+The Document Picture-in-Picture API has provided the flexibility and control to create a more intuitive and user-friendly Miniplayer. The hope is that other browser vendors will take note of the opportunities this API offers and consider incorporating support for it. This would allow Spotify to deliver a consistent and enhanced experience for all users, regardless of their chosen browser.
+
+Acknowledgements
+Thanks to everyone at Spotify who was involved in building the Miniplayer.
+
+Spotify would also like to thank the Google Chrome team for their collaboration and for taking Spotify’s feedback into account for the Document Picture-in-Picture API.
+
+Was this helpful?
+
+Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
+
+Last updated 2024-05-13 UTC.
