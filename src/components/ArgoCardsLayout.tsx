@@ -24,6 +24,7 @@ interface ServiceItem {
   liveCommit: string;
   desiredBranch: string;
   desiredCommit: string;
+  status?: "Progressing" | "Healthy";
 }
 
 interface AppItem {
@@ -39,6 +40,7 @@ interface AppItem {
   namespace: string;
   createdAt: string;
   lastSync: string;
+  time?: string;
 }
 
 interface StatusPillProps {
@@ -255,6 +257,7 @@ const apps: AppItem[] = environmentsData.map((env, i) => {
     namespace: "my-boutique-shop",
     createdAt: "01/21/2025 09:59:55 (a year ago)",
     lastSync: "03/24/2026 11:32:52 (4 hours ago)",
+    time: `${1 + (i % 2)}m${30 + (i * 3 % 30)}s`,
   };
 });
 
@@ -507,7 +510,8 @@ function ServiceCard({
   onCardClick?: () => void;
 }) {
   const isSynced = service.liveBranch === service.desiredBranch && service.liveCommit === service.desiredCommit;
-  const statusColor = isSynced ? "bg-green-500" : "bg-yellow-500";
+  const isProgressing = service.status === "Progressing";
+  const statusColor = isProgressing ? "bg-blue-600" : (isSynced ? "bg-green-500" : "bg-yellow-500");
 
   return (
     <div
@@ -537,13 +541,15 @@ function ServiceCard({
         <div className="text-xs flex-1 flex flex-col justify-between">
           {/* Centered Synced Pill with Icon */}
           <div className="flex-1 flex items-center justify-center">
-            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded text-xl font-bold ${isSynced ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-              {isSynced ? (
+            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded text-xl font-bold ${isProgressing ? 'bg-blue-100 text-blue-800' : (isSynced ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800')}`}>
+              {isProgressing ? (
+                <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" /></svg>
+              ) : isSynced ? (
                 <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
               ) : (
                 <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 19V5" /><polyline points="5 12 12 5 19 12" /></svg>
               )}
-              {isSynced ? 'Synced' : 'Out of Sync'}
+              {isProgressing ? 'Progressing' : (isSynced ? 'Synced' : 'Out of Sync')}
             </span>
           </div>
 
@@ -590,11 +596,20 @@ export default function ArgoCardsLayout() {
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [servicePage, setServicePage] = useState(1);
   const [modalApp, setModalApp] = useState<AppItem | ServiceItem | null>(null);
+  const [syncingApps, setSyncingApps] = useState<Set<string>>(new Set());
+  const [syncedApps, setSyncedApps] = useState<Set<string>>(new Set());
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
 
-  const sortedApps = [...apps].sort((a, b) => {
+  const sortedApps = [...apps].map(app => {
+    if (syncingApps.has(app.name)) {
+      return { ...app, status: "Progressing" as AppStatus };
+    } else if (syncedApps.has(app.name)) {
+      return { ...app, status: "Healthy" as AppStatus, synced: true };
+    }
+    return app;
+  }).sort((a, b) => {
     const aStar = !!starredByName[a.name];
     const bStar = !!starredByName[b.name];
 
@@ -615,7 +630,14 @@ export default function ArgoCardsLayout() {
   const pagedApps = sortedApps.slice(startIndex, startIndex + pageSize);
 
   const servicePageSize = 16;  // 4 rows × 4 cols
-  const sortedServices = [...servicesData].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedServices = [...servicesData].map(service => {
+    if (syncingApps.has(service.name)) {
+      return { ...service, status: "Progressing" as const };
+    } else if (syncedApps.has(service.name)) {
+      return { ...service, status: "Healthy" as const };
+    }
+    return service;
+  }).sort((a, b) => a.name.localeCompare(b.name));
   const servicePages = Math.max(1, Math.ceil(sortedServices.length / servicePageSize));
   const currentServicePage = Math.min(servicePage, servicePages);
   const serviceStartIndex = (currentServicePage - 1) * servicePageSize;
@@ -665,7 +687,38 @@ export default function ArgoCardsLayout() {
 
   return (
     <>
-      <AppModal app={modalApp} onClose={() => setModalApp(null)} selectedAppName={selectedApp || undefined} />
+      <AppModal 
+        app={modalApp} 
+        onClose={() => setModalApp(null)} 
+        selectedAppName={selectedApp || undefined}
+        isSyncing={modalApp ? syncingApps.has(modalApp.name) : false}
+        onSync={(app) => {
+          if (app && 'name' in app) {
+            // Parse time from app data (e.g., "1m45s" -> milliseconds)
+            let durationMs = 2000; // default
+            if (app.time) {
+              const minuteMatch = app.time.match(/(\d+)m/);
+              const secondMatch = app.time.match(/(\d+)s/);
+              const minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
+              const seconds = secondMatch ? parseInt(secondMatch[1]) : 0;
+              durationMs = (minutes * 60 + seconds) * 1000;
+            }
+            
+            // Add app to syncing set
+            setSyncingApps(prev => new Set([...prev, app.name]));
+            
+            // After duration expires, move to synced
+            setTimeout(() => {
+              setSyncingApps(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(app.name);
+                return newSet;
+              });
+              setSyncedApps(prev => new Set([...prev, app.name]));
+            }, durationMs);
+          }
+        }}
+      />
       <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-[#1A3B4C] text-gray-200 flex flex-col p-4">

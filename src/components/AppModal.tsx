@@ -4,11 +4,14 @@ export interface AppModalProps {
   app: any;
   onClose: () => void;
   selectedAppName?: string;
+  isSyncing?: boolean;
+  onSync?: (app: any) => void;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName }) => {
+const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName, isSyncing: isParentSyncing, onSync }) => {
   const [yamlMode, setYamlMode] = useState<"live" | "desired" | null>(null);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [moreOptions, setMoreOptions] = useState({
     force: false,
     replace: false,
@@ -33,7 +36,7 @@ const AppModal: React.FC<AppModalProps> = ({ app, onClose, selectedAppName }) =>
 
   console.log("Modal app data:", app);
 
-  const isSynced = app.liveBranch === app.desiredBranch && app.liveCommit === app.desiredCommit;
+  const isSynced = !isSyncing && !isParentSyncing && app.liveBranch === app.desiredBranch && app.liveCommit === app.desiredCommit;
 
   const generateYaml = (branch: string, commitId: string) => {
     try {
@@ -141,7 +144,7 @@ spec:
         </button>
         <div className="flex items-start gap-4 mb-4 pb-4 border-b">
           {app.abbreviation && (
-            <div className={`w-12 h-12 rounded-full ${isSynced ? 'bg-green-500' : 'bg-yellow-500'} flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
+            <div className={`w-12 h-12 rounded-full ${(isSyncing || isParentSyncing) ? 'bg-blue-600' : (isSynced ? 'bg-green-500' : 'bg-yellow-500')} flex items-center justify-center text-white font-bold text-lg flex-shrink-0`}>
               {app.abbreviation}
             </div>
           )}
@@ -156,7 +159,14 @@ spec:
               </svg>
               <span className="text-lg text-gray-600">2 pods</span>
               <div className="flex items-center gap-1">
-                {isSynced ? (
+                {(isSyncing || isParentSyncing) ? (
+                  <>
+                    <svg className="w-10 h-10 text-blue-600 animate-spin" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" strokeDasharray="60" strokeDashoffset="20" />
+                    </svg>
+                    <span className="text-lg text-blue-600">Progressing</span>
+                  </>
+                ) : isSynced ? (
                   <>
                     <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M5 13l4 4L19 7" />
@@ -399,7 +409,15 @@ spec:
           >
             Cancel
           </button>
-          <button className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+          <button 
+            onClick={() => {
+              if (onSync) {
+                onSync(app);
+                onClose();
+              }
+            }}
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+          >
             Sync
           </button>
         </div>
