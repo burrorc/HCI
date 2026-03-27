@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 
 interface MiniPlayerBarProps {
@@ -27,6 +27,8 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [syncStartTime, setSyncStartTime] = useState<number | null>(initialSyncStartTime);
   const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const audioContextRef = useRef<any>(null);
 
   const parseTimeToSeconds = (timeStr: string) => {
     const minMatch = timeStr.match(/(\d+)m/);
@@ -44,6 +46,88 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const playCelebrationSound = () => {
+    try {
+      // Initialize or reuse audio context
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const audioContext = audioContextRef.current;
+      
+      // Resume context if suspended (required by browser policy)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
+      const now = audioContext.currentTime;
+      
+      // Create a celebratory ascending note sequence
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      const noteDuration = 0.15;
+      
+      notes.forEach((freq, idx) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        const startTime = now + idx * noteDuration;
+        const endTime = startTime + noteDuration;
+        
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, endTime);
+        
+        osc.start(startTime);
+        osc.stop(endTime);
+      });
+    } catch (err) {
+      console.log('Could not play celebration sound:', err);
+    }
+  };
+
+  const Confetti = () => {
+    const confettiPieces = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: 2 + Math.random() * 1,
+      color: ['#fbbf24', '#34d399', '#60a5fa', '#f87171', '#a78bfa'][Math.floor(Math.random() * 5)],
+    }));
+
+    return (
+      <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
+        <style>{`
+          @keyframes fall {
+            to {
+              transform: translateY(400px) rotate(720deg);
+              opacity: 0;
+            }
+          }
+        `}</style>
+        {confettiPieces.map((piece) => (
+          <div
+            key={piece.id}
+            style={{
+              position: 'absolute',
+              left: `${piece.left}%`,
+              top: '-10px',
+              width: '10px',
+              height: '10px',
+              backgroundColor: piece.color,
+              borderRadius: '50%',
+              animation: `fall ${piece.duration}s linear ${piece.delay}s infinite`,
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   // Initialize sync when component opens
   useEffect(() => {
     if (isOpen) {
@@ -51,6 +135,8 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       const totalTime = parseTimeToSeconds(time);
       const cycleDuration = totalTime * 2;
       console.log("[MiniPlayerBar] Calculated totalTime:", totalTime, "cycleDuration:", cycleDuration);
+      
+      setIsComplete(false); // reset completion state
       
       if (initialSyncStartTime !== null) {
         // Use the provided syncStartTime
@@ -95,6 +181,27 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
 
     return () => clearInterval(timerInterval);
   }, [syncStartTime, time, isOpen]);
+
+  // Detect completion and play sound
+  useEffect(() => {
+    if (remainingTime === 0 && isOpen && syncStartTime && !isComplete) {
+      const totalTime = parseTimeToSeconds(time);
+      const cycleDuration = totalTime * 2;
+      const elapsed = (Date.now() - syncStartTime) / 1000;
+      
+      if (elapsed >= cycleDuration) {
+        console.log("[MiniPlayerBar] Sync complete!");
+        setIsComplete(true);
+      }
+    }
+  }, [remainingTime, isOpen, syncStartTime, isComplete, time]);
+
+  // Play celebration sound when sync completes
+  useEffect(() => {
+    if (isComplete) {
+      playCelebrationSound();
+    }
+  }, [isComplete]);
 
   const handleOpenPiP = useCallback(async () => {
     try {
@@ -179,22 +286,54 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
         button:hover {
           opacity: 0.8;
         }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top: 2px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
       `;
       newWindow.document.head.appendChild(styleSheet);
 
       // Create the bar content
       const container = newWindow.document.createElement("div");
-      container.className = "bar-container";
-      container.innerHTML = `
-        <span>${name.toUpperCase()} CPU USAGE</span>
-        <span class="timer">EST ${formattedTime} REMAINING</span>
-        <button id="minimize-btn" title="Maximize">
-          <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 1.5;">
-            <rect x="1" y="1" width="22" height="22" rx="1" />
-            <rect x="14" y="14" width="9" height="9" rx="0.5" fill="white" />
-          </svg>
-        </button>
-      `;
+      
+      if (isComplete) {
+        // Completion screen
+        container.innerHTML = `
+          <div class="bar-container" style="background-color: #16a34a !important; justify-content: center;">
+            <svg viewBox="0 0 24 24" style="width: 30px; height: 30px; fill: white; margin-right: 8px;">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </svg>
+            <span style="font-size: 14px; font-weight: bold; margin-right: 12px;">${name.toUpperCase()}</span>
+            <span style="font-size: 16px; font-weight: bold;">Sync Complete!</span>
+          </div>
+        `;
+      } else {
+        // Normal bar with timer
+        container.className = "bar-container";
+        container.innerHTML = `
+          <div class="spinner"></div>
+          <span style="font-size: 14px; font-weight: bold;">${name.toUpperCase()}</span>
+          <span class="timer">EST ${formattedTime} REMAINING</span>
+          <button id="minimize-btn" title="Maximize">
+            <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 1.5;">
+              <rect x="1" y="1" width="22" height="22" rx="1" />
+              <rect x="14" y="14" width="9" height="9" rx="0.5" fill="white" />
+            </svg>
+          </button>
+        `;
+      }
 
       // Add minimize button functionality
       const minimizeBtn = container.querySelector("#minimize-btn");
@@ -219,7 +358,7 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       console.error("Failed to open PiP window:", err);
       setPipWindow(null);
     }
-  }, [onClose, name, time, syncStartTime]);
+  }, [onClose, name, time, syncStartTime, isComplete]);
 
   // Auto-open PiP window on mount if autoOpenPiP is true
   useEffect(() => {
@@ -247,6 +386,28 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       console.log("[MiniPlayerBar] WARNING: timer element not found in PiP window");
     }
   }, [remainingTime, pipWindow]);
+
+  // Update PiP window when completion state changes
+  useEffect(() => {
+    if (!pipWindow) return;
+
+    const container = pipWindow.document.querySelector(".bar-container") as HTMLElement;
+    if (!container) return;
+
+    if (isComplete) {
+      console.log("[MiniPlayerBar] Updating PiP to show completion screen");
+      container.style.backgroundColor = "#16a34a";
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+          <svg viewBox="0 0 24 24" style="width: 30px; height: 30px; fill: white; margin-right: 8px;">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+          </svg>
+          <span style="font-size: 14px; font-weight: bold; margin-right: 12px;">${name.toUpperCase()}</span>
+          <span style="font-size: 16px; font-weight: bold;">Sync Complete!</span>
+        </div>
+      `;
+    }
+  }, [isComplete, pipWindow, name]);
 
   useEffect(() => {
     if (pipWindow) {

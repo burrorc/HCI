@@ -296,20 +296,23 @@ useEffect(() => {
         html, body {
           height: 100%;
           width: 100%;
+          overflow: hidden;
         }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
           background-color: #fff;
           color: #333;
-          height: 100vh;
+          height: 100%;
           margin: 0;
           padding: 0;
+          overflow: hidden;
         }
         .pip-container {
           width: 100%;
           height: 100%;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
         }
         .pip-header {
           background-color: #eab308;
@@ -320,11 +323,11 @@ useEffect(() => {
         }
         .pip-content {
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         }
         .pip-footer {
           border-top: 1px solid #e0e0e0;
-          padding: 12px;
+          padding: 8px 12px;
           background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
           font-size: 13px;
         }
@@ -371,16 +374,17 @@ useEffect(() => {
           display: flex;
           flex-direction: column;
           background-color: #f3f4f6;
+          overflow: hidden;
         }
         .graph-header {
-          padding: 12px;
+          padding: 8px 12px;
           border-bottom: 1px solid #e5e7eb;
         }
         .graph-title {
           font-size: 13px;
           font-weight: 600;
           color: #1f2937;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
         }
         .graph-legend {
           display: flex;
@@ -489,9 +493,9 @@ useEffect(() => {
     
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#f3f4f6' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '8px', backgroundColor: '#f3f4f6' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '4px', backgroundColor: '#f3f4f6' }}>
           {/* Graph */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
             <svg width={width} height={height} style={{ backgroundColor: 'white', borderRadius: '4px' }}>
             {/* Grid lines */}
             {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -553,8 +557,8 @@ useEffect(() => {
           </div>
           
           {/* Deployment Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
               <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{liveCommitId}</span>
              {hasPeaked ? (
   <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: '#eab308', flexShrink: 0 }}>
@@ -581,7 +585,7 @@ useEffect(() => {
   </div>
 )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
               <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{desiredCommitId}</span>
               {hasPeaked ? (
   <div
