@@ -9,6 +9,8 @@ interface MiniPlayerBarProps {
   liveCommitId?: string;
   desiredCommitId?: string;
   autoOpenPiP?: boolean;
+  syncStartTime?: number | null;
+  onMaximize?: (syncStartTime: number | null) => void;
 }
 
 const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
@@ -19,9 +21,11 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
   liveCommitId = "abc123",
   desiredCommitId = "def456",
   autoOpenPiP = false,
+  syncStartTime: initialSyncStartTime = null,
+  onMaximize,
 }) => {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
-  const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
+  const [syncStartTime, setSyncStartTime] = useState<number | null>(initialSyncStartTime);
   const [remainingTime, setRemainingTime] = useState<number>(0);
 
   const parseTimeToSeconds = (timeStr: string) => {
@@ -43,19 +47,45 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
   // Initialize sync when component opens
   useEffect(() => {
     if (isOpen) {
-      setSyncStartTime(Date.now());
+      console.log("[MiniPlayerBar] Init effect - isOpen:", isOpen, "initialSyncStartTime:", initialSyncStartTime, "time:", time);
       const totalTime = parseTimeToSeconds(time);
       const cycleDuration = totalTime * 2;
-      setRemainingTime(cycleDuration);
+      console.log("[MiniPlayerBar] Calculated totalTime:", totalTime, "cycleDuration:", cycleDuration);
+      
+      if (initialSyncStartTime !== null) {
+        // Use the provided syncStartTime
+        console.log("[MiniPlayerBar] Setting syncStartTime to:", initialSyncStartTime);
+        setSyncStartTime(initialSyncStartTime);
+        // Calculate remaining time based on elapsed time
+        const elapsed = (Date.now() - initialSyncStartTime) / 1000;
+        const remaining = Math.max(0, cycleDuration - elapsed);
+        console.log("[MiniPlayerBar] Calculated elapsed:", elapsed, "remaining:", remaining);
+        setRemainingTime(remaining);
+      } else {
+        // Create a new sync start time if none provided
+        console.log("[MiniPlayerBar] Creating new sync start time");
+        setSyncStartTime(Date.now());
+        setRemainingTime(cycleDuration); // Full duration for new sync
+      }
     }
-  }, [isOpen, time]);
+  }, [isOpen, time, initialSyncStartTime]);
+
 
   // Update timer every second
   useEffect(() => {
-    if (!syncStartTime || !isOpen) return;
+    if (!syncStartTime || !isOpen) {
+      console.log("[MiniPlayerBar] Timer effect skipped - syncStartTime:", syncStartTime, "isOpen:", isOpen);
+      return;
+    }
 
     const totalTime = parseTimeToSeconds(time);
     const cycleDuration = totalTime * 2;
+
+    // Update immediately when syncStartTime changes
+    const elapsed = (Date.now() - syncStartTime) / 1000;
+    const remaining = Math.max(0, cycleDuration - elapsed);
+    console.log("[MiniPlayerBar] Timer effect - updating remainingTime to:", remaining);
+    setRemainingTime(remaining);
 
     const timerInterval = setInterval(() => {
       const elapsed = (Date.now() - syncStartTime) / 1000;
@@ -68,12 +98,24 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
 
   const handleOpenPiP = useCallback(async () => {
     try {
+      console.log("[MiniPlayerBar] handleOpenPiP called - syncStartTime:", syncStartTime);
       const documentPiP = (window as any).documentPictureInPicture;
       if (!documentPiP) {
         console.error("Document Picture-in-Picture API is not available");
         onClose();
         return;
       }
+
+      // Calculate current remaining time before creating window
+      const totalTime = parseTimeToSeconds(time);
+      const cycleDuration = totalTime * 2;
+      const currentSyncStartTime = syncStartTime || Date.now();
+      console.log("[MiniPlayerBar] Using currentSyncStartTime:", currentSyncStartTime, "cycleDuration:", cycleDuration);
+      const elapsed = (Date.now() - currentSyncStartTime) / 1000;
+      const currentRemaining = Math.max(0, cycleDuration - elapsed);
+      const formattedTime = formatTime(currentRemaining);
+
+      console.log("Opening PiP with remaining time:", currentRemaining, "formatted:", formattedTime);
 
       // Request a small PiP window just for the header
       const newWindow = await documentPiP.requestWindow({
@@ -145,7 +187,7 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       container.className = "bar-container";
       container.innerHTML = `
         <span>${name.toUpperCase()} CPU USAGE</span>
-        <span class="timer">EST ${formatTime(remainingTime)} REMAINING</span>
+        <span class="timer">EST ${formattedTime} REMAINING</span>
         <button id="minimize-btn" title="Maximize">
           <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: white; stroke-width: 1.5;">
             <rect x="1" y="1" width="22" height="22" rx="1" />
@@ -158,7 +200,9 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       const minimizeBtn = container.querySelector("#minimize-btn");
       if (minimizeBtn) {
         minimizeBtn.addEventListener("click", () => {
-          // TODO: Add minimize functionality here
+          if (onMaximize) {
+            onMaximize(syncStartTime);
+          }
         });
       }
 
@@ -175,7 +219,7 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       console.error("Failed to open PiP window:", err);
       setPipWindow(null);
     }
-  }, [onClose, name, remainingTime]);
+  }, [onClose, name, time, syncStartTime]);
 
   // Auto-open PiP window on mount if autoOpenPiP is true
   useEffect(() => {
@@ -189,11 +233,18 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
 
   // Update timer in PiP window
   useEffect(() => {
-    if (!pipWindow) return;
+    if (!pipWindow) {
+      console.log("[MiniPlayerBar] DOM update effect - no pipWindow");
+      return;
+    }
 
     const timerElement = pipWindow.document.querySelector(".timer");
+    const formatted = formatTime(remainingTime);
+    console.log("[MiniPlayerBar] Updating PiP DOM timer - remainingTime:", remainingTime, "formatted:", formatted);
     if (timerElement) {
-      timerElement.textContent = `EST ${formatTime(remainingTime)} REMAINING`;
+      timerElement.textContent = `EST ${formatted} REMAINING`;
+    } else {
+      console.log("[MiniPlayerBar] WARNING: timer element not found in PiP window");
     }
   }, [remainingTime, pipWindow]);
 
@@ -242,7 +293,9 @@ const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
       </span>
       <button
         onClick={() => {
-          // TODO: Add maximize functionality here
+          if (onMaximize) {
+            onMaximize(syncStartTime);
+          }
         }}
         style={{
           background: "none",

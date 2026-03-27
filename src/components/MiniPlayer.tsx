@@ -9,14 +9,16 @@ interface MiniPlayerProps {
   time?: string;
   liveCommitId?: string;
   desiredCommitId?: string;
+  syncStartTime?: number | null;
+  onMinimize?: (syncStartTime: number | null) => void;
 }
 
-const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = false, name = "placeholder-deployment-14331567", time = "1m30s", liveCommitId = "abc123", desiredCommitId = "def456" }) => {
+const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = false, name = "placeholder-deployment-14331567", time = "1m30s", liveCommitId = "abc123", desiredCommitId = "def456", syncStartTime: initialSyncStartTime = null, onMinimize }) => {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSize, setPipSize] = useState<'small' | 'large'>('large');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [syncStartTime, setSyncStartTime] = useState<number | null>(null);
+  const [syncStartTime, setSyncStartTime] = useState<number | null>(initialSyncStartTime);
   const [totalSyncDuration, setTotalSyncDuration] = useState<number>(0);
 
     const [hasPeaked, setHasPeaked] = useState(false);
@@ -50,15 +52,25 @@ const [cpuData, setCpuData] = useState(
   Array.from({ length: 720 }, () => initialPoint)
 );
 
-  // Update CPU data every 5 seconds
+  // Update CPU data every 5 seconds and initialize sync
  useEffect(() => {
   if (isOpen) {
-    setSyncStartTime(Date.now());
+    // Only set a new sync start time if one wasn't passed in
+    if (syncStartTime === null && initialSyncStartTime === null) {
+      setSyncStartTime(Date.now());
+      setRemainingTime(parseTimeToSeconds(time) * 2); // Full duration for new sync
+    } else if (initialSyncStartTime !== null && syncStartTime !== initialSyncStartTime) {
+      setSyncStartTime(initialSyncStartTime);
+      // Calculate remaining time based on elapsed time
+      const totalTime = parseTimeToSeconds(time);
+      const cycleDuration = totalTime * 2;
+      const elapsed = (Date.now() - initialSyncStartTime) / 1000;
+      setRemainingTime(Math.max(0, cycleDuration - elapsed));
+    }
     setHasPeaked(false); // reset state
     setIsComplete(false); // reset completion state
-    setRemainingTime(parseTimeToSeconds(time) * 2); // Set to full duration
   }
-}, [isOpen, time]);
+}, [isOpen, time, initialSyncStartTime]);
 
 useEffect(() => {
   if (!syncStartTime) return;
@@ -122,6 +134,11 @@ useEffect(() => {
 
   const totalTime = parseTimeToSeconds(time);
   const cycleDuration = totalTime * 2;
+
+  // Update immediately when syncStartTime changes
+  const elapsed = (Date.now() - syncStartTime) / 1000;
+  const remaining = Math.max(0, cycleDuration - elapsed);
+  setRemainingTime(remaining);
 
   const timerInterval = setInterval(() => {
     const elapsed = (Date.now() - syncStartTime) / 1000;
@@ -632,7 +649,10 @@ useEffect(() => {
         <span style={{ fontSize: '12px', fontWeight: '500', color: 'white', textAlign: 'center' }}>EST {formatTime(remainingTime)} REMAINING</span>
         <button
           onClick={() => {
-            // TODO: Add minimize functionality here
+            console.log("[MiniPlayer] Minimize clicked, passing syncStartTime:", syncStartTime);
+            if (onMinimize) {
+              onMinimize(syncStartTime);
+            }
           }}
           style={{
             background: 'none',

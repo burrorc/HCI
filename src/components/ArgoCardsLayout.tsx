@@ -615,6 +615,27 @@ export default function ArgoCardsLayout() {
     liveCommitId: "",
     desiredCommitId: "",
   });
+  const [sharedSyncStartTime, setSharedSyncStartTime] = useState<number | null>(null);
+
+  // Switch from MiniPlayer to MiniPlayerBar
+  const switchToBar = (syncStartTime: number | null) => {
+    console.log("[ArgoCardsLayout] switchToBar called with syncStartTime:", syncStartTime);
+    setSharedSyncStartTime(syncStartTime);
+    // Copy miniPlayerProps to barProps
+    setBarProps(miniPlayerProps);
+    setIsMiniPlayerOpen(false);
+    setIsBarOpen(true);
+  };
+
+  // Switch from MiniPlayerBar to MiniPlayer
+  const switchToMiniPlayer = (syncStartTime: number | null) => {
+    console.log("[ArgoCardsLayout] switchToMiniPlayer called with syncStartTime:", syncStartTime);
+    setSharedSyncStartTime(syncStartTime);
+    // Copy barProps to miniPlayerProps
+    setMiniPlayerProps(barProps);
+    setIsBarOpen(false);
+    setIsMiniPlayerOpen(true);
+  };
 
   const getDisplayTitle = (app: AppItem) => titlesByName[app.name] ?? app.name;
   const getDraftTitle = (app: AppItem) => draftTitlesByName[app.name] ?? getDisplayTitle(app);
@@ -1057,6 +1078,8 @@ export default function ArgoCardsLayout() {
       time={miniPlayerProps.time}
       liveCommitId={miniPlayerProps.liveCommitId}
       desiredCommitId={miniPlayerProps.desiredCommitId}
+      syncStartTime={sharedSyncStartTime}
+      onMinimize={switchToBar}
     />
     <MiniPlayerBar
       isOpen={isBarOpen}
@@ -1066,6 +1089,8 @@ export default function ArgoCardsLayout() {
       time={barProps.time}
       liveCommitId={barProps.liveCommitId}
       desiredCommitId={barProps.desiredCommitId}
+      syncStartTime={sharedSyncStartTime}
+      onMaximize={switchToMiniPlayer}
     />
     </>
   );
