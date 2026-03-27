@@ -5,9 +5,13 @@ interface MiniPlayerProps {
   isOpen: boolean;
   onClose: () => void;
   autoOpenPiP?: boolean;
+  name?: string;
+  time?: string;
+  liveCommitId?: string;
+  desiredCommitId?: string;
 }
 
-const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = false }) => {
+const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = false, name = "placeholder-deployment-14331567", time = "1m30s", liveCommitId = "abc123", desiredCommitId = "def456" }) => {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
   const [pipSize, setPipSize] = useState<'small' | 'large'>('large');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -96,6 +100,127 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
       tailwindLink.href = 'https://cdn.tailwindcss.com';
       newWindow.document.head.appendChild(tailwindLink);
 
+      // Add custom CSS styling
+      const styleSheet = document.createElement('style');
+      styleSheet.textContent = `
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+          background-color: #fff;
+          color: #333;
+        }
+        .pip-container {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .pip-header {
+          background-color: #eab308;
+          color: white;
+          padding: 6px 12px;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        .pip-content {
+          flex: 1;
+          overflow: auto;
+        }
+        .pip-footer {
+          border-top: 1px solid #e0e0e0;
+          padding: 12px;
+          background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+          font-size: 13px;
+        }
+        .deployment-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 10px;
+          padding: 8px 10px;
+          background-color: white;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+          transition: all 0.2s ease;
+        }
+        .deployment-item:hover {
+          background-color: #f0f9ff;
+          border-color: #3b82f6;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .status-badge {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          flex-shrink: 0;
+          box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+        }
+        .deployment-name {
+          color: #1f2937;
+          font-size: 12px;
+          font-weight: 500;
+          font-family: 'Monaco', 'Menlo', monospace;
+          letter-spacing: 0.3px;
+        }
+        .graph-container {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          background-color: #f3f4f6;
+        }
+        .graph-header {
+          padding: 12px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .graph-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 8px;
+        }
+        .graph-legend {
+          display: flex;
+          gap: 16px;
+          font-size: 12px;
+        }
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .legend-line {
+          width: 12px;
+          height: 2px;
+        }
+        .legend-label {
+          color: #4b5563;
+        }
+        .graph-body {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+        }
+        .graph-svg {
+          background-color: white;
+          border-radius: 4px;
+        }
+      `;
+      newWindow.document.head.appendChild(styleSheet);
+
       setPipWindow(newWindow);
 
       // Handle window close
@@ -169,27 +294,11 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
     };
     
     return (
-      <div className="w-full h-full flex flex-col bg-gray-50">
-        <div className="p-3 border-b">
-          <h3 className="text-sm font-semibold text-gray-800">CPU Usage</h3>
-          <div className="flex gap-4 text-xs mt-2">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-0.5 bg-blue-600"></div>
-              <span className="text-gray-600">Used</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-0.5 bg-green-600"></div>
-              <span className="text-gray-600">Requested</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-0.5 bg-red-600"></div>
-              <span className="text-gray-600">Limit</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex-1 flex items-center justify-center p-2">
-          <svg width={width} height={height} className="bg-white rounded">
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#f3f4f6' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '8px', backgroundColor: '#f3f4f6' }}>
+          {/* Graph */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+            <svg width={width} height={height} style={{ backgroundColor: 'white', borderRadius: '4px' }}>
             {/* Grid lines */}
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <line
@@ -247,24 +356,61 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
             {/* X-axis */}
             <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#333" strokeWidth="1" />
           </svg>
+          </div>
+          
+          {/* Deployment Status */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
+              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>placeholder-deployment-14331567</span>
+              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)' }}>✓</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
+              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>placeholder-deployment-14331567</span>
+              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)' }}>✓</div>
+            </div>
+          </div>
         </div>
       </div>
     );
   };
 
-  const PiPContent = () => (
-    <div className="w-full h-full bg-white flex flex-col">
+  const PiPContent = () => {
+    const latestData = cpuData[cpuData.length - 1];
+    const usagePercent = Math.round((latestData.used / latestData.limit) * 100);
+    
+    return (
+    <div className="pip-container">
       {/* Header */}
-      <div className="bg-blue-600 text-white p-3">
-        <h2 className="font-bold text-lg">Kubernetes Workload CPU</h2>
+      <div className="pip-header" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>Kubernetes Workload CPU Usage</span>
+        <button
+          onClick={() => setIsMinimized(!isMinimized)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '18px',
+            cursor: 'pointer',
+            padding: '0 4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title={isMinimized ? "Restore" : "Minimize"}
+        >
+          {isMinimized ? '▢' : '−'}
+        </button>
       </div>
 
       {/* Content - CPU Graph */}
-      <div className="flex-1 overflow-auto">
-        <CPUGraphChart />
-      </div>
+      {!isMinimized && (
+        <div className="pip-content">
+          <CPUGraphChart />
+        </div>
+      )}
     </div>
   );
+  };
 
   if (!isOpen) return null;
 
