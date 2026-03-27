@@ -361,12 +361,15 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
           {/* Deployment Status */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
-              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>placeholder-deployment-14331567</span>
+              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{liveCommitId}</span>
               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)' }}>✓</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', transition: 'all 0.2s ease' }}>
-              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>placeholder-deployment-14331567</span>
-              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', flexShrink: 0, boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)' }}>✓</div>
+              <span style={{ color: '#1f2937', fontSize: '12px', fontWeight: 500, fontFamily: "'Monaco', 'Menlo', monospace", letterSpacing: '0.3px' }}>{name}-deployment-{desiredCommitId}</span>
+              <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', stroke: '#22c55e', flexShrink: 0 }}>
+                <path d="M20 12a8 8 0 10-2.35 5.65" strokeWidth="2" fill="none" strokeLinecap="round" />
+                <polyline points="20 8 20 12 16 12" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
           </div>
         </div>
@@ -382,7 +385,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
     <div className="pip-container">
       {/* Header */}
       <div className="pip-header" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span>Kubernetes Workload CPU Usage</span>
+        <span>{name.toUpperCase()} CPU USAGE</span>
         <button
           onClick={() => setIsMinimized(!isMinimized)}
           style={{
