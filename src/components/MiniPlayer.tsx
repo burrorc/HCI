@@ -14,6 +14,41 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
+  // CPU metrics data (in millicores)
+  const [cpuData, setCpuData] = useState<Array<{ used: number; requested: number; limit: number }>>([
+    { used: 100, requested: 200, limit: 500 },
+    { used: 150, requested: 200, limit: 500 },
+    { used: 200, requested: 200, limit: 500 },
+    { used: 180, requested: 200, limit: 500 },
+    { used: 220, requested: 200, limit: 500 },
+    { used: 250, requested: 200, limit: 500 },
+    { used: 210, requested: 200, limit: 500 },
+    { used: 190, requested: 200, limit: 500 },
+  ]);
+
+  // Update CPU data every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCpuData((prevData) => {
+        // Generate new data point based on last value (slightly variable)
+        const lastPoint = prevData[prevData.length - 1];
+        const change = (Math.random() - 0.5) * 60; // Random change between -30 and +30
+        const newUsed = Math.max(50, Math.min(350, lastPoint.used + change)); // Clamp between 50 and 350
+        
+        const newPoint = {
+          used: Math.round(newUsed),
+          requested: 200,
+          limit: 500,
+        };
+        
+        // Keep only last 8 data points
+        return [...prevData.slice(1), newPoint];
+      });
+    }, 5000); // Update every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   const tracks = [
     { name: "Blinding Lights", artist: "The Weeknd" },
     { name: "Shape of You", artist: "Ed Sheeran" },
@@ -110,47 +145,123 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
     setIsPlaying(!isPlaying);
   };
 
+  const CPUGraphChart = () => {
+    const width = 360;
+    const height = 200;
+    const padding = 40;
+    const maxValue = 500; // max CPU in millicores
+    
+    const chartWidth = width - 2 * padding;
+    const chartHeight = height - 2 * padding;
+    
+    const xScale = chartWidth / (cpuData.length - 1);
+    const yScale = chartHeight / maxValue;
+    
+    // Generate paths for each metric
+    const generatePath = (key: 'used' | 'requested' | 'limit') => {
+      return cpuData
+        .map((point, idx) => {
+          const x = padding + idx * xScale;
+          const y = height - padding - point[key] * yScale;
+          return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+        })
+        .join(' ');
+    };
+    
+    return (
+      <div className="w-full h-full flex flex-col bg-gray-50">
+        <div className="p-3 border-b">
+          <h3 className="text-sm font-semibold text-gray-800">CPU Usage</h3>
+          <div className="flex gap-4 text-xs mt-2">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-0.5 bg-blue-600"></div>
+              <span className="text-gray-600">Used</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-0.5 bg-green-600"></div>
+              <span className="text-gray-600">Requested</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-0.5 bg-red-600"></div>
+              <span className="text-gray-600">Limit</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center p-2">
+          <svg width={width} height={height} className="bg-white rounded">
+            {/* Grid lines */}
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <line
+                key={`grid-${i}`}
+                x1={padding}
+                y1={padding + (i * chartHeight) / 5}
+                x2={width - padding}
+                y2={padding + (i * chartHeight) / 5}
+                stroke="#e5e7eb"
+                strokeWidth="1"
+                strokeDasharray="2,2"
+              />
+            ))}
+            
+            {/* Y-axis labels */}
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <text
+                key={`label-${i}`}
+                x={padding - 10}
+                y={height - padding - (i * chartHeight) / 5 + 4}
+                fontSize="10"
+                textAnchor="end"
+                fill="#888"
+              >
+                {i * 100}m
+              </text>
+            ))}
+            
+            {/* Limit line (red) */}
+            <path
+              d={generatePath('limit')}
+              stroke="#dc2626"
+              strokeWidth="2"
+              fill="none"
+            />
+            
+            {/* Requested line (green) */}
+            <path
+              d={generatePath('requested')}
+              stroke="#16a34a"
+              strokeWidth="2"
+              fill="none"
+            />
+            
+            {/* Used line (blue) */}
+            <path
+              d={generatePath('used')}
+              stroke="#2563eb"
+              strokeWidth="2"
+              fill="none"
+            />
+            
+            {/* Y-axis */}
+            <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#333" strokeWidth="1" />
+            {/* X-axis */}
+            <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#333" strokeWidth="1" />
+          </svg>
+        </div>
+      </div>
+    );
+  };
+
   const PiPContent = () => (
     <div className="w-full h-full bg-white flex flex-col">
       {/* Header */}
-      <div className="bg-green-500 text-white p-3 flex items-center justify-between">
-        <h2 className="font-bold text-lg">🎵 Spotify</h2>
-        <button
-          onClick={ClosePiP}
-          className="text-white hover:text-gray-200 text-2xl leading-none"
-        >
-          ×
-        </button>
+      <div className="bg-blue-600 text-white p-3">
+        <h2 className="font-bold text-lg">Kubernetes Workload CPU</h2>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto">
-        <div className="text-6xl mb-4">🎵</div>
-        <h3 className="font-bold text-lg text-gray-800">Now Playing</h3>
-        <p className="text-sm text-gray-600">{currentTrack.name}</p>
-        <p className="text-xs text-gray-500">{currentTrack.artist}</p>
-      </div>
-
-      {/* Controls */}
-      <div className="border-t p-3 flex gap-2">
-        <button 
-          onClick={handlePrevTrack}
-          className="flex-1 px-2 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold"
-        >
-          ⏮
-        </button>
-        <button 
-          onClick={handlePlayPause}
-          className="flex-1 px-2 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold"
-        >
-          {isPlaying ? "⏸" : "▶"}
-        </button>
-        <button 
-          onClick={handleNextTrack}
-          className="flex-1 px-2 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold"
-        >
-          ⏭
-        </button>
+      {/* Content - CPU Graph */}
+      <div className="flex-1 overflow-auto">
+        <CPUGraphChart />
       </div>
     </div>
   );
@@ -198,12 +309,26 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
 
           {/* Content */}
           {!isMinimized && (
-            <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-4xl mb-2">🎵</p>
-                <p className="font-semibold text-gray-800">{currentTrack.name}</p>
-                <p className="text-sm text-gray-600">{currentTrack.artist}</p>
-                <p className="text-xs text-gray-400 mt-3">{isPlaying ? "▶ Playing" : "⏸ Paused"}</p>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Used:</span>
+                  <span className="font-semibold text-blue-600">{cpuData[cpuData.length - 1].used}m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Requested:</span>
+                  <span className="font-semibold text-green-600">{cpuData[cpuData.length - 1].requested}m</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Limit:</span>
+                  <span className="font-semibold text-red-600">{cpuData[cpuData.length - 1].limit}m</span>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-gray-500">% of Limit</div>
+                  <div className="text-lg font-bold text-gray-800">
+                    {Math.round((cpuData[cpuData.length - 1].used / cpuData[cpuData.length - 1].limit) * 100)}%
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -211,58 +336,7 @@ const MiniPlayer: React.FC<MiniPlayerProps> = ({ isOpen, onClose, autoOpenPiP = 
           {/* Footer with Controls */}
           {!isMinimized && (
             <div className="p-4 border-t flex flex-col gap-2">
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={() => setPipSize('small')}
-                  className={`flex-1 px-3 py-2 rounded text-sm font-semibold transition-colors ${
-                    pipSize === 'small'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Small PiP
-                </button>
-                <button
-                  onClick={() => setPipSize('large')}
-                  className={`flex-1 px-3 py-2 rounded text-sm font-semibold transition-colors ${
-                    pipSize === 'large'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  Large PiP
-                </button>
-              </div>
-              <button
-                onClick={handleOpenPiP}
-                className="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold"
-              >
-                🖵 Open in Picture-in-Picture
-              </button>
-              <div className="flex gap-2">
-                <button 
-                  onClick={handlePrevTrack}
-                  className="flex-1 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold"
-                >
-                  ⏮ Prev
-                </button>
-                <button 
-                  onClick={handlePlayPause}
-                  className="flex-1 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold"
-                >
-                  {isPlaying ? "⏸ Pause" : "▶ Play"}
-                </button>
-                <button 
-                  onClick={handleNextTrack}
-                  className="flex-1 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold"
-                >
-                  Next ⏭
-                </button>
-              </div>
-              <div className="text-center text-xs mt-2">
-                <p className="font-semibold text-gray-800">{currentTrack.name}</p>
-                <p className="text-gray-600">{currentTrack.artist}</p>
-              </div>
+              {/* Add your custom controls here */}
             </div>
           )}
         </div>
